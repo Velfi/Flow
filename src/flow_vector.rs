@@ -5,7 +5,7 @@ use nannou::prelude::*;
 const DEFAULT_V1: f32 = 0.0;
 const DEFAULT_V2: f32 = VECTOR_MAGNITUDE;
 // Values over 0.1 get pretty chaotic
-const NOISE_SCALE: f64 = 0.05;
+// const DEFAULT_NOISE_SCALE: f64 = 0.05;
 
 #[derive(Debug)]
 pub struct FlowVector {
@@ -80,7 +80,7 @@ pub fn new_right_hand_curve_flow_vectors(window_rect: &Rect<f32>) -> Vec<FlowVec
         .collect()
 }
 
-pub fn new_simplex_noise_flow_vectors(window_rect: &Rect<f32>, seed: u32) -> Vec<FlowVector> {
+pub fn new_simplex_noise_flow_vectors(window_rect: &Rect<f32>, seed: u32, scale: f64) -> Vec<FlowVector> {
     let noise = nannou::noise::OpenSimplex::new().set_seed(seed);
     let origin_x = window_rect.left() as f32 + VECTOR_SPACING;
     let origin_y = window_rect.bottom() as f32 + VECTOR_SPACING;
@@ -101,8 +101,8 @@ pub fn new_simplex_noise_flow_vectors(window_rect: &Rect<f32>, seed: u32) -> Vec
                 let mut fv = FlowVector::new(xy);
                 // let noise_value = noise.get([xy.x as f64, xy.y as f64]);
                 let noise_value = noise.get([
-                    row_index as f64 * NOISE_SCALE,
-                    column_index as f64 * NOISE_SCALE,
+                    row_index as f64 * scale,
+                    column_index as f64 * scale,
                 ]);
                 let a = noise_value as f32 * TAU;
                 fv.rotate(a.to_degrees());

@@ -4,15 +4,15 @@ use nannou::prelude::*;
 
 const MIN_AGE: f32 = 0.0;
 const MAX_AGE: f32 = PARTICLE_MAX_LIFETIME / 2.0;
-const STEP_LENGTH: f32 = 3.0;
+const STEP_LENGTH: f32 = 0.5;
 const AGING: f32 = 0.1;
-const MIN_WEIGHT: f32 = 3.0;
-const MAX_WEIGHT: f32 = 10.0;
+const MIN_WEIGHT: f32 = 1.0;
+const MAX_WEIGHT: f32 = 5.0;
 
 #[derive(Debug)]
 pub struct FlowParticle {
     age: f32,
-    color: Rgb<u8>,
+    color: Rgba<u8>,
     previous_xy: Vector2<f32>,
     weight: f32,
     xy: Vector2<f32>,

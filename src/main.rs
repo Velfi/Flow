@@ -6,15 +6,16 @@ mod random_color;
 use flow_particle::{FlowParticle, LineCap};
 use flow_vector::{new_simplex_noise_flow_vectors, FlowVector};
 use nannou::prelude::*;
+use rand::rngs::ThreadRng;
 use rand::Rng;
 
-pub const VECTOR_MAGNITUDE: f32 = 15.0;
-pub const VECTOR_SPACING: f32 = 20.0 + VECTOR_MAGNITUDE;
+pub const VECTOR_MAGNITUDE: f32 = 5.0;
+pub const VECTOR_SPACING: f32 = 10.0 + VECTOR_MAGNITUDE;
 pub const RESOLUTION_H: u32 = 1080;
 pub const RESOLUTION_W: u32 = 1920;
 pub const GRID_H: usize = (RESOLUTION_H as f32 / VECTOR_SPACING) as usize;
 pub const GRID_W: usize = (RESOLUTION_W as f32 / VECTOR_SPACING) as usize;
-pub const PARTICLE_MAX_LIFETIME: f32 = 100.0;
+pub const PARTICLE_MAX_LIFETIME: f32 = 200.0;
 pub const AUTO_SPAWN_PARTICLE_COUNT_LIMIT: usize = 400;
 
 fn main() {
@@ -24,16 +25,16 @@ fn main() {
 struct Model {
     _window: window::Id,
     automatically_spawn_particles: bool,
+    background: Background,
+    color_palette: Vec<&'static str>,
     flow_particles: Vec<FlowParticle>,
     flow_vectors: Vec<FlowVector>,
+    line_cap: LineCap,
     mouse_xy: Vector2<f32>,
     particle_cleanup_requested: bool,
     redraw_background: RedrawBackground,
-    window_rect: Rect<f32>,
-    color_palette: Vec<&'static str>,
-    line_cap: LineCap,
-    noise_seed: u32,
     rng: rand::rngs::ThreadRng,
+    window_rect: Rect<f32>,
 }
 
 fn model(app: &App) -> Model {
@@ -50,24 +51,26 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let noise_seed = (random_f32() * 100_000.0) as u32;
+    let mut rng = rand::thread_rng();
+    let noise_seed = rng.gen_range(0, 100_000);
+    let noise_scale = rng.gen_range(0.01, 0.1);
 
     // let flow_vectors = new_right_hand_curve_flow_vectors(&window_rect);
-    let flow_vectors = new_simplex_noise_flow_vectors(&window_rect, noise_seed);
+    let flow_vectors = new_simplex_noise_flow_vectors(&window_rect, noise_seed, noise_scale);
 
     Model {
         _window,
         automatically_spawn_particles: false,
+        background: Background::Vectors,
+        color_palette: palette::TURBO.to_vec(),
         flow_particles: Vec::with_capacity(64),
         flow_vectors,
+        line_cap: LineCap::Square,
         mouse_xy: Vector2::new(0.0, 0.0),
         particle_cleanup_requested: false,
         redraw_background: RedrawBackground::Pending,
+        rng,
         window_rect,
-        color_palette: palette::TURBO.to_vec(),
-        line_cap: LineCap::Square,
-        noise_seed,
-        rng: rand::thread_rng(),
     }
 }
 
@@ -145,17 +148,21 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         Key::A => {
             model.automatically_spawn_particles = !model.automatically_spawn_particles;
         }
+        Key::B => {
+            model.background = model.background.next();
+            model.reset();
+        }
         Key::C => {
             model.color_palette = palette::new_random_palette();
             model.reset();
         }
         Key::L => {
             model.line_cap = model.line_cap.next();
-            println!("Switch line cap to: {:?}", model.line_cap);
             model.reset();
         }
         Key::N => {
-            model.noise_seed = (model.rng.gen::<f32>() * 100_000.0) as u32;
+            let (seed, scale) = new_noise_opts(&mut model.rng);
+            model.flow_vectors = new_simplex_noise_flow_vectors(&model.window_rect, seed, scale);
             model.reset();
         }
         _ => {}
@@ -177,11 +184,21 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     }
 
     if model.redraw_background == RedrawBackground::InProgress {
-        draw.background().color(WHITE);
+        match model.background {
+            Background::Black => {
+                draw.background().color(BLACK);
+            }
+            Background::White => {
+                draw.background().color(WHITE);
+            }
+            Background::Vectors => {
+                draw.background().color(WHITE);
 
-        for fv in &model.flow_vectors {
-            fv.draw(&draw);
-        }
+                for fv in &model.flow_vectors {
+                    fv.draw(&draw);
+                }
+            }
+        };
     }
 
     for fp in &model.flow_particles {
@@ -208,6 +225,23 @@ impl RedrawBackground {
             Self::Pending => Self::InProgress,
             Self::InProgress => Self::Complete,
             Self::Complete => Self::Complete,
+        }
+    }
+}
+
+#[derive(PartialEq, Debug)]
+enum Background {
+    Black,
+    White,
+    Vectors,
+}
+
+impl Background {
+    pub fn next(&self) -> Self {
+        match self {
+            Self::Black => Self::White,
+            Self::White => Self::Vectors,
+            Self::Vectors => Self::Black,
         }
     }
 }
@@ -246,4 +280,11 @@ fn nearest_angle(xy: Vector2<f32>, window_rect: &Rect<f32>, flow_vectors: &[Flow
         .get(fv_index)
         .map(|fv| fv.heading())
         .unwrap_or(0.0)
+}
+
+fn new_noise_opts(rng: &mut ThreadRng) -> (u32, f64) {
+    let noise_seed = rng.gen_range(0, 100_000);
+    let noise_scale = rng.gen_range(0.01, 0.1);
+
+    (noise_seed, noise_scale)
 }
