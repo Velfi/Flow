@@ -4,7 +4,7 @@ mod palette;
 mod random_color;
 
 use flow_particle::{FlowParticle, LineCap};
-use flow_vector::FlowVector;
+use flow_vector::{new_right_hand_curve_flow_vectors, FlowVector};
 use nannou::prelude::*;
 
 pub const VECTOR_MAGNITUDE: f32 = 15.0;
@@ -35,7 +35,6 @@ struct Model {
 
 fn model(app: &App) -> Model {
     let window_rect = Rect::from_w_h(RESOLUTION_W as f32, RESOLUTION_H as f32);
-    println!("window_rect: {:#?}", window_rect);
 
     let _window = app
         .new_window()
@@ -48,31 +47,7 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let origin_x = window_rect.left() as f32 + VECTOR_SPACING;
-    let origin_y = window_rect.bottom() as f32 + VECTOR_SPACING;
-
-    println!(
-        "Creating vectors with origin x:{}, y:{}",
-        origin_x, origin_y
-    );
-
-    let flow_vectors = (0..GRID_H)
-        .map(move |column_index| {
-            (0..GRID_W).map(move |row_index| {
-                let xy = Point2::new(
-                    (row_index as f32 * VECTOR_SPACING) + origin_x,
-                    (column_index as f32 * VECTOR_SPACING) + origin_y,
-                );
-
-                let mut fv = FlowVector::new(xy);
-                let a = (column_index as f32 / GRID_H as f32) * PI;
-                fv.rotate(&a.to_degrees());
-
-                fv
-            })
-        })
-        .flatten()
-        .collect();
+    let flow_vectors = new_right_hand_curve_flow_vectors(&window_rect);
 
     Model {
         _window,

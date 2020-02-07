@@ -1,3 +1,4 @@
+use crate::{GRID_H, GRID_W, VECTOR_SPACING};
 use nannou::prelude::*;
 
 const DEFAULT_V1: f32 = 15.0;
@@ -46,4 +47,32 @@ impl FlowVector {
     pub fn heading(&self) -> f32 {
         f32::atan2(self.vector.y, self.vector.x).to_degrees()
     }
+}
+
+pub fn new_right_hand_curve_flow_vectors(window_rect: &Rect<f32>) -> Vec<FlowVector> {
+    let origin_x = window_rect.left() as f32 + VECTOR_SPACING;
+    let origin_y = window_rect.bottom() as f32 + VECTOR_SPACING;
+
+    println!(
+        "Creating vectors with origin x:{}, y:{}",
+        origin_x, origin_y
+    );
+
+    (0..GRID_H)
+        .map(move |column_index| {
+            (0..GRID_W).map(move |row_index| {
+                let xy = Point2::new(
+                    (row_index as f32 * VECTOR_SPACING) + origin_x,
+                    (column_index as f32 * VECTOR_SPACING) + origin_y,
+                );
+
+                let mut fv = FlowVector::new(xy);
+                let a = (column_index as f32 / GRID_H as f32) * PI;
+                fv.rotate(&a.to_degrees());
+
+                fv
+            })
+        })
+        .flatten()
+        .collect()
 }
