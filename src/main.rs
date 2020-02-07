@@ -4,8 +4,9 @@ mod palette;
 mod random_color;
 
 use flow_particle::{FlowParticle, LineCap};
-use flow_vector::{new_right_hand_curve_flow_vectors, FlowVector};
+use flow_vector::{new_simplex_noise_flow_vectors, FlowVector};
 use nannou::prelude::*;
+use rand::Rng;
 
 pub const VECTOR_MAGNITUDE: f32 = 15.0;
 pub const VECTOR_SPACING: f32 = 20.0 + VECTOR_MAGNITUDE;
@@ -13,7 +14,7 @@ pub const RESOLUTION_H: u32 = 1080;
 pub const RESOLUTION_W: u32 = 1920;
 pub const GRID_H: usize = (RESOLUTION_H as f32 / VECTOR_SPACING) as usize;
 pub const GRID_W: usize = (RESOLUTION_W as f32 / VECTOR_SPACING) as usize;
-pub const PARTICLE_MAX_LIFETIME: f32 = 200.0;
+pub const PARTICLE_MAX_LIFETIME: f32 = 100.0;
 pub const AUTO_SPAWN_PARTICLE_COUNT_LIMIT: usize = 400;
 
 fn main() {
@@ -31,6 +32,8 @@ struct Model {
     window_rect: Rect<f32>,
     color_palette: Vec<&'static str>,
     line_cap: LineCap,
+    noise_seed: u32,
+    rng: rand::rngs::ThreadRng,
 }
 
 fn model(app: &App) -> Model {
@@ -47,7 +50,10 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let flow_vectors = new_right_hand_curve_flow_vectors(&window_rect);
+    let noise_seed = (random_f32() * 100_000.0) as u32;
+
+    // let flow_vectors = new_right_hand_curve_flow_vectors(&window_rect);
+    let flow_vectors = new_simplex_noise_flow_vectors(&window_rect, noise_seed);
 
     Model {
         _window,
@@ -58,8 +64,17 @@ fn model(app: &App) -> Model {
         particle_cleanup_requested: false,
         redraw_background: RedrawBackground::Pending,
         window_rect,
-        color_palette: palette::MAGMA.to_vec(),
+        color_palette: palette::TURBO.to_vec(),
         line_cap: LineCap::Square,
+        noise_seed,
+        rng: rand::thread_rng(),
+    }
+}
+
+impl Model {
+    pub fn reset(&mut self) {
+        self.flow_particles = Vec::new();
+        self.redraw_background = RedrawBackground::Pending;
     }
 }
 
@@ -69,7 +84,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
             model.particle_cleanup_requested = true;
         }
 
-        let nearest_angle = nearest_angle(&fp.xy(), &model.window_rect, &model.flow_vectors);
+        let nearest_angle = nearest_angle(*fp.xy(), &model.window_rect, &model.flow_vectors);
         fp.update(nearest_angle);
     }
 
@@ -89,14 +104,17 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     let top = model.window_rect.top();
 
     model.flow_particles.retain(|fp| {
-        fp.xy().x > left || fp.xy().x < right || fp.xy().y > bottom || fp.xy().y < top
+        fp.xy().x > left + VECTOR_SPACING
+            && fp.xy().x < right - VECTOR_SPACING
+            && fp.xy().y > bottom + VECTOR_SPACING
+            && fp.xy().y < top - VECTOR_SPACING
     });
 
     if model.automatically_spawn_particles
         && model.flow_particles.len() < AUTO_SPAWN_PARTICLE_COUNT_LIMIT
     {
         let new_particle =
-            new_random_particle(&model.window_rect, &model.color_palette, &model.line_cap);
+            new_random_particle(&model.window_rect, &model.color_palette, model.line_cap);
         model.flow_particles.push(new_particle);
     }
 }
@@ -109,22 +127,19 @@ fn mouse_pressed(_app: &App, model: &mut Model, button: MouseButton) {
     match button {
         MouseButton::Left => {
             let new_particle =
-                FlowParticle::new(model.mouse_xy, &model.color_palette, &model.line_cap);
+                FlowParticle::new(model.mouse_xy, &model.color_palette, model.line_cap);
             model.flow_particles.push(new_particle);
         }
-        MouseButton::Right => {
-            model.flow_particles = Vec::new();
-            model.redraw_background = RedrawBackground::Pending;
-        }
+        MouseButton::Right => model.reset(),
         _ => {}
-    }
+    };
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Space => {
             let new_particle =
-                new_random_particle(&model.window_rect, &model.color_palette, &model.line_cap);
+                new_random_particle(&model.window_rect, &model.color_palette, model.line_cap);
             model.flow_particles.push(new_particle);
         }
         Key::A => {
@@ -132,18 +147,19 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         }
         Key::C => {
             model.color_palette = palette::new_random_palette();
-            model.flow_particles = Vec::new();
-            model.redraw_background = RedrawBackground::Pending;
+            model.reset();
         }
         Key::L => {
             model.line_cap = model.line_cap.next();
             println!("Switch line cap to: {:?}", model.line_cap);
-
-            model.flow_particles = Vec::new();
-            model.redraw_background = RedrawBackground::Pending;
+            model.reset();
+        }
+        Key::N => {
+            model.noise_seed = (model.rng.gen::<f32>() * 100_000.0) as u32;
+            model.reset();
         }
         _ => {}
-    }
+    };
 }
 
 fn resized(_app: &App, model: &mut Model, _: Vector2) {
@@ -199,7 +215,7 @@ impl RedrawBackground {
 fn new_random_particle(
     window_rect: &Rect<f32>,
     color_palette: &[&'static str],
-    line_cap: &LineCap,
+    line_cap: LineCap,
 ) -> FlowParticle {
     let random_x = map_range(
         rand::random(),
@@ -219,7 +235,7 @@ fn new_random_particle(
     FlowParticle::new(Vector2::new(random_x, random_y), color_palette, line_cap)
 }
 
-fn nearest_angle(xy: &Vector2<f32>, window_rect: &Rect<f32>, flow_vectors: &[FlowVector]) -> f32 {
+fn nearest_angle(xy: Vector2<f32>, window_rect: &Rect<f32>, flow_vectors: &[FlowVector]) -> f32 {
     let origin_x = window_rect.left() as f32 + VECTOR_SPACING;
     let origin_y = window_rect.bottom() as f32 + VECTOR_SPACING;
     let row_index = ((xy.x - origin_x) / VECTOR_SPACING).round() as usize;
