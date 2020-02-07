@@ -49,6 +49,9 @@ pub const TURBO: &[&str] = &[
     "850701", "810602", "7e0502", "7a0402",
 ];
 
+pub const TRANSPARENT_BLACK: &[&str] = &["00000011"];
+pub const TRANSPARENT_WHITE: &[&str] = &["FFFFFF11"];
+
 pub fn new_random_palette() -> std::vec::Vec<&'static str> {
     [CASTLEVANIA, DEFAULT, FLOWERS, LEAVES, VIRIDIS, MAGMA, TURBO]
         .choose(&mut rand::thread_rng())
