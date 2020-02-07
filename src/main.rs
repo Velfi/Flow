@@ -3,7 +3,7 @@ mod flow_vector;
 mod palette;
 mod random_color;
 
-use flow_particle::FlowParticle;
+use flow_particle::{FlowParticle, LineCap};
 use flow_vector::FlowVector;
 use nannou::prelude::*;
 
@@ -14,6 +14,7 @@ pub const RESOLUTION_W: u32 = 1920;
 pub const GRID_H: usize = (RESOLUTION_H as f32 / VECTOR_SPACING) as usize;
 pub const GRID_W: usize = (RESOLUTION_W as f32 / VECTOR_SPACING) as usize;
 pub const PARTICLE_MAX_LIFETIME: f32 = 200.0;
+pub const AUTO_SPAWN_PARTICLE_COUNT_LIMIT: usize = 400;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -21,12 +22,15 @@ fn main() {
 
 struct Model {
     _window: window::Id,
-    window_rect: Rect<f32>,
-    flow_vectors: Vec<FlowVector>,
+    automatically_spawn_particles: bool,
     flow_particles: Vec<FlowParticle>,
-    redraw_background: RedrawBackground,
+    flow_vectors: Vec<FlowVector>,
     mouse_xy: Vector2<f32>,
     particle_cleanup_requested: bool,
+    redraw_background: RedrawBackground,
+    window_rect: Rect<f32>,
+    color_palette: Vec<&'static str>,
+    line_cap: LineCap,
 }
 
 fn model(app: &App) -> Model {
@@ -72,12 +76,15 @@ fn model(app: &App) -> Model {
 
     Model {
         _window,
-        window_rect,
-        flow_vectors,
+        automatically_spawn_particles: false,
         flow_particles: Vec::with_capacity(64),
-        redraw_background: RedrawBackground::Pending,
+        flow_vectors,
         mouse_xy: Vector2::new(0.0, 0.0),
         particle_cleanup_requested: false,
+        redraw_background: RedrawBackground::Pending,
+        window_rect,
+        color_palette: palette::MAGMA.to_vec(),
+        line_cap: LineCap::Square,
     }
 }
 
@@ -109,6 +116,14 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model.flow_particles.retain(|fp| {
         fp.xy().x > left || fp.xy().x < right || fp.xy().y > bottom || fp.xy().y < top
     });
+
+    if model.automatically_spawn_particles
+        && model.flow_particles.len() < AUTO_SPAWN_PARTICLE_COUNT_LIMIT
+    {
+        let new_particle =
+            new_random_particle(&model.window_rect, &model.color_palette, &model.line_cap);
+        model.flow_particles.push(new_particle);
+    }
 }
 
 fn mouse_moved(_app: &App, model: &mut Model, pos: Vector2) {
@@ -118,12 +133,13 @@ fn mouse_moved(_app: &App, model: &mut Model, pos: Vector2) {
 fn mouse_pressed(_app: &App, model: &mut Model, button: MouseButton) {
     match button {
         MouseButton::Left => {
-            let new_particle = FlowParticle::new(model.mouse_xy);
+            let new_particle =
+                FlowParticle::new(model.mouse_xy, &model.color_palette, &model.line_cap);
             model.flow_particles.push(new_particle);
         }
         MouseButton::Right => {
-            model.redraw_background = RedrawBackground::Pending;
             model.flow_particles = Vec::new();
+            model.redraw_background = RedrawBackground::Pending;
         }
         _ => {}
     }
@@ -132,22 +148,24 @@ fn mouse_pressed(_app: &App, model: &mut Model, button: MouseButton) {
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Space => {
-            let random_x = map_range(
-                rand::random(),
-                0.0,
-                1.0,
-                model.window_rect.left(),
-                model.window_rect.right(),
-            );
-            let random_y = map_range(
-                rand::random(),
-                0.0,
-                1.0,
-                model.window_rect.bottom(),
-                model.window_rect.top(),
-            );
-            let new_particle = FlowParticle::new(Vector2::new(random_x, random_y));
+            let new_particle =
+                new_random_particle(&model.window_rect, &model.color_palette, &model.line_cap);
             model.flow_particles.push(new_particle);
+        }
+        Key::A => {
+            model.automatically_spawn_particles = !model.automatically_spawn_particles;
+        }
+        Key::C => {
+            model.color_palette = palette::new_random_palette();
+            model.flow_particles = Vec::new();
+            model.redraw_background = RedrawBackground::Pending;
+        }
+        Key::L => {
+            model.line_cap = model.line_cap.next();
+            println!("Switch line cap to: {:?}", model.line_cap);
+
+            model.flow_particles = Vec::new();
+            model.redraw_background = RedrawBackground::Pending;
         }
         _ => {}
     }
@@ -201,6 +219,29 @@ impl RedrawBackground {
             Self::Complete => Self::Complete,
         }
     }
+}
+
+fn new_random_particle(
+    window_rect: &Rect<f32>,
+    color_palette: &[&'static str],
+    line_cap: &LineCap,
+) -> FlowParticle {
+    let random_x = map_range(
+        rand::random(),
+        0.0,
+        1.0,
+        window_rect.left(),
+        window_rect.right(),
+    );
+    let random_y = map_range(
+        rand::random(),
+        0.0,
+        1.0,
+        window_rect.bottom(),
+        window_rect.top(),
+    );
+
+    FlowParticle::new(Vector2::new(random_x, random_y), color_palette, line_cap)
 }
 
 fn nearest_angle(xy: &Vector2<f32>, window_rect: &Rect<f32>, flow_vectors: &[FlowVector]) -> f32 {
