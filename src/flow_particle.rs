@@ -1,45 +1,44 @@
-use crate::random_color::random_color;
-use crate::PARTICLE_MAX_LIFETIME;
 use nannou::prelude::*;
-
-const MIN_AGE: f32 = 0.0;
-const MAX_AGE: f32 = PARTICLE_MAX_LIFETIME / 2.0;
-const STEP_LENGTH: f32 = 0.5;
-const AGING: f32 = 0.1;
-const MIN_WEIGHT: f32 = 1.0;
-const MAX_WEIGHT: f32 = 5.0;
 
 #[derive(Debug)]
 pub struct FlowParticle {
     age: f32,
+    aging_rate: f32,
     color: Rgba<u8>,
+    line_cap: LineCap,
     previous_xy: Vector2<f32>,
+    step_length: f32,
     weight: f32,
     xy: Vector2<f32>,
-    line_cap: LineCap,
 }
 
 impl FlowParticle {
-    pub fn new(xy: Vector2<f32>, color_palette: &[&'static str], line_cap: LineCap) -> Self {
-        let random_age = map_range(rand::random(), 0.0, 1.0, MIN_AGE, MAX_AGE);
-        let random_color = random_color(color_palette);
-        let random_weight = map_range(rand::random(), 0.0, 1.0, MIN_WEIGHT, MAX_WEIGHT);
-
+    pub fn new(
+        age: f32,
+        aging_rate: f32,
+        color: Rgba<u8>,
+        line_cap: LineCap,
+        step_length: f32,
+        weight: f32,
+        xy: Vector2<f32>,
+    ) -> Self {
         FlowParticle {
-            age: random_age,
-            color: random_color,
-            previous_xy: xy,
-            weight: random_weight,
-            xy,
+            age,
+            aging_rate,
+            color,
             line_cap,
+            previous_xy: xy,
+            step_length,
+            weight,
+            xy,
         }
     }
 
     pub fn update(&mut self, nearest_angle: f32) {
-        self.age += AGING;
+        self.age += self.aging_rate;
         self.previous_xy = self.xy;
-        self.xy.x += STEP_LENGTH * f32::cos(nearest_angle.to_radians());
-        self.xy.y += STEP_LENGTH * f32::sin(nearest_angle.to_radians());
+        self.xy.x += self.step_length * f32::cos(nearest_angle.to_radians());
+        self.xy.y += self.step_length * f32::sin(nearest_angle.to_radians());
     }
 
     pub fn draw(&self, draw: &app::Draw) {
@@ -62,6 +61,35 @@ impl FlowParticle {
     pub fn xy(&self) -> &Vector2<f32> {
         &self.xy
     }
+}
+
+impl Default for FlowParticle {
+    fn default() -> Self {
+        let xy = Vector2::new(0.0, 0.0);
+
+        FlowParticle {
+            age: 0.0,
+            aging_rate: 0.1,
+            color: Rgba::new(0, 0, 0, 255),
+            line_cap: LineCap::Round,
+            previous_xy: xy,
+            step_length: 1.0,
+            weight: 1.0,
+            xy,
+        }
+    }
+}
+
+pub type FlowParticleBuilderFn = Box<dyn Fn(FlowParticleBuilderFnOptions) -> FlowParticle>;
+
+pub struct FlowParticleBuilderFnOptions {
+    pub age: f32,
+    pub aging_rate: f32,
+    pub color: Rgba<u8>,
+    pub line_cap: LineCap,
+    pub step_length: f32,
+    pub weight: f32,
+    pub xy: Vector2<f32>,
 }
 
 #[derive(Debug, Clone, Copy)]
