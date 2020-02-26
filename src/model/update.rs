@@ -99,6 +99,10 @@ pub fn resized(_app: &App, model: &mut Model, _: Vector2) {
 pub fn update_ui(model: &mut Model) {
     let ui = &mut model.ui.set_widgets();
 
+    if !model.show_ui {
+        return;
+    }
+
     if button()
         .top_left_with_margin(20.0)
         .label("Hide Controls")
@@ -134,7 +138,7 @@ pub fn update_ui(model: &mut Model) {
         model.redraw_background = RedrawBackground::Pending;
     }
 
-    if let Some(value) = widget::Slider::new(model.noise_scale, 0.01, 0.3)
+    if let Some(value) = widget::Slider::new(model.noise_scale, 0.01, 0.1)
         .w_h(200.0, 30.0)
         .label_font_size(14)
         .rgb(0.3, 0.3, 0.3)
@@ -171,7 +175,7 @@ pub fn update_ui(model: &mut Model) {
         model.particle_max_weight = value;
     }
 
-    if let Some(value) = slider(model.particle_step_length, 0.001, 50.0)
+    if let Some(value) = slider(model.particle_step_length, 0.001, 10.0)
         .down(10.0)
         .label("Particle Speed")
         .set(model.widget_ids.particle_step_length, ui)
