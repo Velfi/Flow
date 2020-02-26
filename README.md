@@ -41,9 +41,7 @@ I haven't figured out how to paint to different frames, so the ui will remain vi
     Sorry, your browser doesn't support embedded videos.
 </video>
 
-![Flow Field Animation 1][animation-1]
-![Flow Field Animation 2][animation-2]
+![Flow Field Animation 1](FlowFieldAnimation1.mov)
+![Flow Field Animation 2](FlowFieldAnimation2.mov)
 
 [preview]: Preview.png "Flow Field Screenshot"
-[animation-1]: FlowFieldAnimation1.mov "Flow Field Animation 1"
-[animation-2]: FlowFieldAnimation2.mov "Flow Field Animation 2"
