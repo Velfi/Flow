@@ -1,5 +1,3 @@
-use rand::seq::SliceRandom;
-
 pub const CASTLEVANIA: &[&str] = &["C7855C", "9A5F4B", "2F2227", "183AD0", "6B94D7"];
 pub const DEFAULT: &[&str] = &["2F5564", "40A997", "DDB689", "E58844", "D66358"];
 pub const FLOWERS: &[&str] = &["3A442B", "6F743A", "AFA393", "B3998F", "D13335"];
@@ -55,9 +53,51 @@ pub const TRANSPARENT_BLACK: &[&str] = &["00000011"];
 #[allow(dead_code)]
 pub const TRANSPARENT_WHITE: &[&str] = &["FFFFFF11"];
 
-pub fn new_random_palette() -> std::vec::Vec<&'static str> {
-    [CASTLEVANIA, DEFAULT, FLOWERS, LEAVES, VIRIDIS, MAGMA, TURBO]
-        .choose(&mut rand::thread_rng())
-        .unwrap()
-        .to_vec()
+// pub fn new_random_palette() -> std::vec::Vec<&'static str> {
+//     [CASTLEVANIA, DEFAULT, FLOWERS, LEAVES, VIRIDIS, MAGMA, TURBO]
+//         .choose(&mut rand::thread_rng())
+//         .unwrap()
+//         .to_vec()
+// }
+
+pub enum Palette {
+    Castlevania,
+    Default,
+    Flowers,
+    Leaves,
+    Magma,
+    Viridis,
+    Turbo,
+    TransparentBlack,
+    TransparentWhite,
+}
+
+impl Palette {
+    pub fn next(&self) -> Self {
+        match self {
+            Self::Castlevania => Self::Default,
+            Self::Default => Self::Flowers,
+            Self::Flowers => Self::Leaves,
+            Self::Leaves => Self::Magma,
+            Self::Magma => Self::Viridis,
+            Self::Viridis => Self::Turbo,
+            Self::Turbo => Self::TransparentBlack,
+            Self::TransparentBlack => Self::TransparentWhite,
+            Self::TransparentWhite => Self::Castlevania,
+        }
+    }
+
+    pub fn as_colors(&self) -> &'static [&'static str] {
+        match self {
+            Self::Castlevania => CASTLEVANIA,
+            Self::Default => DEFAULT,
+            Self::Flowers => FLOWERS,
+            Self::Leaves => LEAVES,
+            Self::Magma => MAGMA,
+            Self::Viridis => VIRIDIS,
+            Self::Turbo => TURBO,
+            Self::TransparentBlack => TRANSPARENT_BLACK,
+            Self::TransparentWhite => TRANSPARENT_WHITE,
+        }
+    }
 }

@@ -34,11 +34,11 @@ impl FlowParticle {
         }
     }
 
-    pub fn update(&mut self, nearest_angle: f32) {
+    pub fn update(&mut self, nearest_angle: f32, step_length: f32) {
         self.age += self.aging_rate;
         self.previous_xy = self.xy;
-        self.xy.x += self.step_length * f32::cos(nearest_angle.to_radians());
-        self.xy.y += self.step_length * f32::sin(nearest_angle.to_radians());
+        self.xy.x += (self.step_length + step_length) * f32::cos(nearest_angle.to_radians());
+        self.xy.y += (self.step_length + step_length) * f32::sin(nearest_angle.to_radians());
     }
 
     pub fn draw(&self, draw: &app::Draw) {

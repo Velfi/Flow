@@ -73,6 +73,53 @@ pub fn new_right_hand_curve_flow_vectors(model: &Model) -> Vec<FlowVector> {
 
 pub fn new_simplex_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     let noise = nannou::noise::OpenSimplex::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_basic_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::BasicMulti::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_billow_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Billow::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_checkboard_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Checkerboard::new();
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_fbm_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Fbm::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_hybrid_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::HybridMulti::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_value_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Value::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_worley_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Worley::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_noise_flow_vectors(model: &Model, noise: &dyn NoiseFn<[f64; 2]>) -> Vec<FlowVector> {
     let (origin_x, origin_y) = model.get_origin();
 
     (0..model.grid_height)
@@ -96,4 +143,46 @@ pub fn new_simplex_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
         })
         .flatten()
         .collect()
+}
+
+pub enum FlowVectorFieldBuilder {
+    RightHandCurve,
+    BasicMulti,
+    Billow,
+    Checkerboard,
+    Fbm,
+    HybridMulti,
+    OpenSimplex,
+    Value,
+    Worley,
+}
+
+impl FlowVectorFieldBuilder {
+    pub fn next(&self) -> FlowVectorFieldBuilder {
+        match self {
+            Self::RightHandCurve => Self::BasicMulti,
+            Self::BasicMulti => Self::Billow,
+            Self::Billow => Self::Checkerboard,
+            Self::Checkerboard => Self::Fbm,
+            Self::Fbm => Self::HybridMulti,
+            Self::HybridMulti => Self::OpenSimplex,
+            Self::OpenSimplex => Self::Value,
+            Self::Value => Self::Worley,
+            Self::Worley => Self::RightHandCurve,
+        }
+    }
+
+    pub fn as_fn(&self) -> FlowVectorFieldBuilderFn {
+        Box::new(match self {
+            Self::RightHandCurve => new_right_hand_curve_flow_vectors,
+            Self::BasicMulti => new_basic_multi_noise_flow_vectors,
+            Self::Billow => new_billow_noise_flow_vectors,
+            Self::Checkerboard => new_checkboard_noise_flow_vectors,
+            Self::Fbm => new_fbm_noise_flow_vectors,
+            Self::HybridMulti => new_hybrid_multi_noise_flow_vectors,
+            Self::OpenSimplex => new_simplex_noise_flow_vectors,
+            Self::Value => new_value_noise_flow_vectors,
+            Self::Worley => new_worley_noise_flow_vectors,
+        })
+    }
 }

@@ -5,15 +5,16 @@ mod view;
 
 use crate::{
     flow_particle::{FlowParticle, FlowParticleBuilderFn, FlowParticleBuilderFnOptions, LineCap},
-    flow_vector::{new_simplex_noise_flow_vectors, FlowVector, FlowVectorFieldBuilderFn},
-    palette,
+    flow_vector::{FlowVector, FlowVectorFieldBuilder, FlowVectorFieldBuilderFn},
+    palette::Palette,
     random_color::random_color,
     widget_ids::WidgetIds,
 };
 use constants::{
-    DEFAULT_GRID_H, DEFAULT_GRID_W, DEFAULT_MAX_WEIGHT, DEFAULT_MIN_WEIGHT,
-    DEFAULT_PARTICLE_LIFETIME, DEFAULT_RESOLUTION_H, DEFAULT_RESOLUTION_W, DEFAULT_STEP_LENGTH,
-    DEFAULT_VECTOR_MAGNITUDE, DEFAULT_VECTOR_SPACING,
+    DEFAULT_AGING_RATE, DEFAULT_AUTO_SPAWN_PARTICLE_COUNT_LIMIT, DEFAULT_GRID_H, DEFAULT_GRID_W,
+    DEFAULT_MAX_WEIGHT, DEFAULT_MIN_WEIGHT, DEFAULT_NOISE_SCALE, DEFAULT_PARTICLE_LIFETIME,
+    DEFAULT_RESOLUTION_H, DEFAULT_RESOLUTION_W, DEFAULT_STEP_LENGTH, DEFAULT_VECTOR_MAGNITUDE,
+    DEFAULT_VECTOR_SPACING,
 };
 use enums::{Background, RedrawBackground};
 use nannou::{
@@ -28,7 +29,7 @@ pub struct Model {
     pub _window: window::Id,
     pub automatically_spawn_particles: bool,
     pub background: Background,
-    pub color_palette: Vec<&'static str>,
+    pub color_palette: Palette,
     pub flow_particles: Vec<FlowParticle>,
     pub flow_vectors: Vec<FlowVector>,
     pub grid_height: usize,
@@ -38,8 +39,9 @@ pub struct Model {
     pub nearest_angle_fn: Box<dyn Fn(Vector2<f32>, &Model) -> f32>,
     pub new_flow_particle_fn: FlowParticleBuilderFn,
     pub new_flow_vector_fn: FlowVectorFieldBuilderFn,
-    pub noise_scale: f32,
+    pub noise_scale: f64,
     pub noise_seed: u32,
+    pub flow_vector_field_builder_type: FlowVectorFieldBuilder,
     pub particle_auto_spawn_limit: usize,
     pub particle_cleanup_requested: bool,
     pub particle_lifetime: f32,
@@ -77,7 +79,6 @@ impl Model {
 
         let mut rng = rand::thread_rng();
         let noise_seed = rng.gen_range(0, 100_000);
-        let noise_scale = rng.gen_range(0.01, 0.3);
 
         let new_flow_particle_fn = Box::new(|options: FlowParticleBuilderFnOptions| {
             FlowParticle::new(
@@ -96,19 +97,20 @@ impl Model {
             _window,
             automatically_spawn_particles: false,
             background: Background::Vectors,
-            color_palette: palette::MAGMA.to_vec(),
+            color_palette: Palette::Default,
             flow_particles: Vec::with_capacity(64),
             flow_vectors: Vec::new(),
             grid_height: DEFAULT_GRID_H,
             grid_width: DEFAULT_GRID_W,
-            line_cap: LineCap::Square,
+            line_cap: LineCap::Round,
             mouse_xy: Vector2::new(0.0, 0.0),
             nearest_angle_fn: Box::new(nearest_angle_in_grid),
             new_flow_particle_fn,
-            new_flow_vector_fn: Box::new(new_simplex_noise_flow_vectors),
-            noise_scale,
+            flow_vector_field_builder_type: FlowVectorFieldBuilder::Billow,
+            new_flow_vector_fn: FlowVectorFieldBuilder::Billow.as_fn(),
+            noise_scale: DEFAULT_NOISE_SCALE,
             noise_seed,
-            particle_auto_spawn_limit: 400,
+            particle_auto_spawn_limit: DEFAULT_AUTO_SPAWN_PARTICLE_COUNT_LIMIT,
             particle_cleanup_requested: false,
             particle_lifetime: DEFAULT_PARTICLE_LIFETIME,
             particle_max_weight: DEFAULT_MAX_WEIGHT,
@@ -131,7 +133,7 @@ impl Model {
 
     pub fn spawn_new_particle(&mut self, xy: Vector2<f32>) {
         let age = map_range(rand::random(), 0.0, 1.0, 0.0, self.particle_lifetime);
-        let color = random_color(&self.color_palette);
+        let color = random_color(&self.color_palette.as_colors());
         let weight = map_range(
             rand::random(),
             0.0,
@@ -141,10 +143,10 @@ impl Model {
         );
         let new_particle = (self.new_flow_particle_fn)(FlowParticleBuilderFnOptions {
             age,
-            aging_rate: 0.1,
+            aging_rate: DEFAULT_AGING_RATE,
             color,
             line_cap: self.line_cap,
-            step_length: 1.0,
+            step_length: self.rng.gen_range(0.0, 1.0),
             weight,
             xy,
         });
