@@ -37,7 +37,7 @@ I haven't figured out how to paint to different frames, so the ui will remain vi
 
 <video controls width="900">
   <source src="FlowFieldAnimation1.mov"
-          type="video/mov">
+          type="video/mp4">
     Sorry, your browser doesn't support embedded videos.
 </video>
 
