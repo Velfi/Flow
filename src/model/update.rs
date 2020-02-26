@@ -1,22 +1,20 @@
 use super::enums::RedrawBackground;
 use super::Model;
-use crate::{flow_particle::FlowParticle, flow_vector::FlowVector, palette};
-use nannou::geom::Rect;
-use nannou::prelude::{App, Frame, Key, MouseButton, Update, Vector2, BLACK, WHITE};
-use rand::prelude::ThreadRng;
+use crate::palette;
+use nannou::prelude::{App, Key, MouseButton, Update, Vector2};
+use nannou::ui::prelude::*;
 use rand::Rng;
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     update_ui(model);
 
-    for fp in &mut model.flow_particles {
-        if fp.age() > model.particle_lifetime {
+    for index in 0..model.flow_particles.len() {
+        if model.flow_particles[index].age() > model.particle_lifetime {
             model.particle_cleanup_requested = true;
         }
 
-        let nearest_angle =
-            (model.nearest_angle_fn)(*fp.xy(), &model.window_rect, &model.flow_vectors);
-        fp.update(nearest_angle);
+        let nearest_angle = (model.nearest_angle_fn)(*model.flow_particles[index].xy(), model);
+        model.flow_particles[index].update(nearest_angle);
     }
 
     if model.redraw_background != RedrawBackground::Complete {
@@ -24,7 +22,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 
     if model.particle_cleanup_requested {
-        let particle_lifetime = model.particle_lifetime.clone();
+        let particle_lifetime = model.particle_lifetime;
 
         model
             .flow_particles
@@ -86,10 +84,18 @@ pub fn key_pressed(_app: &App, model: &mut Model, key: Key) {
             model.reset();
         }
         Key::N => {
+            model.noise_seed = model.rng.gen_range(0, 100_000);
+            model.noise_scale = model.rng.gen_range(0.01, 0.3);
             model.regen_flow_vectors();
             model.reset();
         }
-        _ => {}
+        Key::Grave => {
+            model.show_ui = !model.show_ui;
+        }
+        _ => println!(
+            "Ignored pressed key {:?} because no handler has been set",
+            key
+        ),
     };
 }
 
@@ -97,70 +103,35 @@ pub fn resized(_app: &App, model: &mut Model, _: Vector2) {
     model.redraw_background = RedrawBackground::Pending;
 }
 
-// pub fn new_random_particle(
-//     window_rect: &Rect<f32>,
-//     color_palette: &[&'static str],
-//     line_cap: LineCap,
-// ) -> FlowParticle {
-//     let random_x = map_range(
-//         rand::random(),
-//         0.0,
-//         1.0,
-//         window_rect.left(),
-//         window_rect.right(),
-//     );
-//     let random_y = map_range(
-//         rand::random(),
-//         0.0,
-//         1.0,
-//         window_rect.bottom(),
-//         window_rect.top(),
-//     );
-
-//     FlowParticle::new(Vector2::new(random_x, random_y), color_palette, line_cap)
-// }
-
-// pub fn nearest_angle_in_grid(
-//     xy: Vector2<f32>,
-//     window_rect: &Rect<f32>,
-//     flow_vectors: &[FlowVector],
-// ) -> f32 {
-//     let origin_x = window_rect.left() as f32 + VECTOR_SPACING;
-//     let origin_y = window_rect.bottom() as f32 + VECTOR_SPACING;
-//     let row_index = ((xy.x - origin_x) / VECTOR_SPACING).round() as usize;
-//     let column_index = ((xy.y - origin_y) / VECTOR_SPACING).round() as usize;
-//     let fv_index = row_index + column_index * GRID_W;
-
-//     flow_vectors
-//         .get(fv_index)
-//         .map(|fv| fv.heading())
-//         .unwrap_or(0.0)
-// }
-
-pub fn new_noise_opts(rng: &mut ThreadRng) -> (u32, f64) {
-    let noise_seed = rng.gen_range(0, 100_000);
-    let noise_scale = rng.gen_range(0.01, 0.1);
-
-    (noise_seed, noise_scale)
-}
-
 pub fn update_ui(model: &mut Model) {
     let ui = &mut model.ui.set_widgets();
 
-    // for value in slider(model.resolution as f32, 3.0, 15.0)
-    //     .top_left_with_margin(20.0)
-    //     .label("Resolution")
-    //     .set(model.ids.resolution, ui)
-    // {
-    //     model.resolution = value as usize;
-    // }
+    // grid_height: widget::Id,
+    // grid_width: widget::Id,
+    // noise_scale: widget::Id,
+    // noise_seed: widget::Id,
+    // particle_lifetime: widget::Id,
+    // particle_max_weight: widget::Id,
+    // particle_min_weight: widget::Id,
+    // particle_auto_spawn_limit: widget::Id,
+    // particle_step_length: widget::Id,
+    // vector_magnitude: widget::Id,
+    // vector_spacing: widget::Id,
+
+    if let Some(value) = slider(model.noise_scale as f32, 0.01, 0.3)
+        .top_left_with_margin(20.0)
+        .label("Noise Scale")
+        .set(model.widget_ids.noise_scale, ui)
+    {
+        model.noise_scale = value;
+    }
 }
 
-// pub fn slider(val: f32, min: f32, max: f32) -> widget::Slider<'static, f32> {
-//     widget::Slider::new(val, min, max)
-//         .w_h(200.0, 30.0)
-//         .label_font_size(15)
-//         .rgb(0.3, 0.3, 0.3)
-//         .label_rgb(1.0, 1.0, 1.0)
-//         .border(0.0)
-// }
+pub fn slider(val: f32, min: f32, max: f32) -> widget::Slider<'static, f32> {
+    widget::Slider::new(val, min, max)
+        .w_h(200.0, 30.0)
+        .label_font_size(15)
+        .rgb(0.3, 0.3, 0.3)
+        .label_rgb(1.0, 1.0, 1.0)
+        .border(0.0)
+}

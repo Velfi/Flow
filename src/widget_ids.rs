@@ -1,17 +1,17 @@
 use nannou::ui::prelude::*;
 
 pub struct WidgetIds {
-    grid_height: widget::Id,
-    grid_width: widget::Id,
-    noise_scale: widget::Id,
-    noise_seed: widget::Id,
-    particle_lifetime: widget::Id,
-    particle_max_weight: widget::Id,
-    particle_min_weight: widget::Id,
-    particle_auto_spawn_limit: widget::Id,
-    particle_step_length: widget::Id,
-    vector_magnitude: widget::Id,
-    vector_spacing: widget::Id,
+    pub grid_height: widget::Id,
+    pub grid_width: widget::Id,
+    pub noise_scale: widget::Id,
+    pub noise_seed: widget::Id,
+    pub particle_lifetime: widget::Id,
+    pub particle_max_weight: widget::Id,
+    pub particle_min_weight: widget::Id,
+    pub particle_auto_spawn_limit: widget::Id,
+    pub particle_step_length: widget::Id,
+    pub vector_magnitude: widget::Id,
+    pub vector_spacing: widget::Id,
 }
 
 impl WidgetIds {
