@@ -1,11 +1,6 @@
-use crate::{GRID_H, GRID_W, VECTOR_MAGNITUDE, VECTOR_SPACING};
+use crate::model::Model;
 use nannou::noise::{NoiseFn, Seedable};
 use nannou::prelude::*;
-
-const DEFAULT_V1: f32 = 0.0;
-const DEFAULT_V2: f32 = VECTOR_MAGNITUDE;
-// Values over 0.1 get pretty chaotic
-// const DEFAULT_NOISE_SCALE: f64 = 0.05;
 
 #[derive(Debug)]
 pub struct FlowVector {
@@ -14,10 +9,10 @@ pub struct FlowVector {
 }
 
 impl FlowVector {
-    pub fn new(xy: Vector2<f32>) -> Self {
+    pub fn new(xy: Vector2<f32>, magnitude: f32) -> Self {
         Self {
             xy,
-            vector: Vector2::new(DEFAULT_V1, DEFAULT_V2),
+            vector: Vector2::new(0.0, magnitude),
         }
     }
 
@@ -52,25 +47,21 @@ impl FlowVector {
     }
 }
 
-pub fn new_right_hand_curve_flow_vectors(window_rect: &Rect<f32>) -> Vec<FlowVector> {
-    let origin_x = window_rect.left() as f32 + VECTOR_SPACING;
-    let origin_y = window_rect.bottom() as f32 + VECTOR_SPACING;
+pub type FlowVectorFieldBuilderFn = Box<dyn Fn(&Model) -> Vec<FlowVector>>;
 
-    println!(
-        "Creating vectors with origin x:{}, y:{}",
-        origin_x, origin_y
-    );
+pub fn new_right_hand_curve_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let (origin_x, origin_y) = model.get_origin();
 
-    (0..GRID_H)
+    (0..model.grid_height)
         .map(move |column_index| {
-            (0..GRID_W).map(move |row_index| {
+            (0..model.grid_width).map(move |row_index| {
                 let xy = Point2::new(
-                    (row_index as f32 * VECTOR_SPACING) + origin_x,
-                    (column_index as f32 * VECTOR_SPACING) + origin_y,
+                    (row_index as f32 * model.vector_spacing) + origin_x,
+                    (column_index as f32 * model.vector_spacing) + origin_y,
                 );
 
-                let mut fv = FlowVector::new(xy);
-                let a = (column_index as f32 / GRID_H as f32) * PI;
+                let mut fv = FlowVector::new(xy, model.vector_magnitude);
+                let a = (column_index as f32 / model.grid_height as f32) * PI;
                 fv.rotate(a.to_degrees());
 
                 fv
@@ -80,29 +71,69 @@ pub fn new_right_hand_curve_flow_vectors(window_rect: &Rect<f32>) -> Vec<FlowVec
         .collect()
 }
 
-pub fn new_simplex_noise_flow_vectors(window_rect: &Rect<f32>, seed: u32, scale: f64) -> Vec<FlowVector> {
-    let noise = nannou::noise::OpenSimplex::new().set_seed(seed);
-    let origin_x = window_rect.left() as f32 + VECTOR_SPACING;
-    let origin_y = window_rect.bottom() as f32 + VECTOR_SPACING;
+pub fn new_simplex_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::OpenSimplex::new().set_seed(model.noise_seed);
 
-    println!(
-        "Creating vectors with origin x:{}, y:{}",
-        origin_x, origin_y
-    );
+    new_noise_flow_vectors(model, &noise)
+}
 
-    (0..GRID_H)
+pub fn new_basic_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::BasicMulti::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_billow_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Billow::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_checkboard_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Checkerboard::new();
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_fbm_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Fbm::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_hybrid_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::HybridMulti::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_value_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Value::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_worley_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    let noise = nannou::noise::Worley::new().set_seed(model.noise_seed);
+
+    new_noise_flow_vectors(model, &noise)
+}
+
+pub fn new_noise_flow_vectors(model: &Model, noise: &dyn NoiseFn<[f64; 2]>) -> Vec<FlowVector> {
+    let (origin_x, origin_y) = model.get_origin();
+
+    (0..model.grid_height)
         .map(move |column_index| {
-            (0..GRID_W).map(move |row_index| {
+            (0..model.grid_width).map(move |row_index| {
                 let xy = Point2::new(
-                    (row_index as f32 * VECTOR_SPACING) + origin_x,
-                    (column_index as f32 * VECTOR_SPACING) + origin_y,
+                    (row_index as f32 * model.vector_spacing) + origin_x,
+                    (column_index as f32 * model.vector_spacing) + origin_y,
                 );
 
-                let mut fv = FlowVector::new(xy);
-                // let noise_value = noise.get([xy.x as f64, xy.y as f64]);
+                let mut fv = FlowVector::new(xy, model.vector_magnitude);
                 let noise_value = noise.get([
-                    row_index as f64 * scale,
-                    column_index as f64 * scale,
+                    row_index as f64 * model.noise_scale as f64,
+                    column_index as f64 * model.noise_scale as f64,
                 ]);
                 let a = noise_value as f32 * TAU;
                 fv.rotate(a.to_degrees());
@@ -112,4 +143,46 @@ pub fn new_simplex_noise_flow_vectors(window_rect: &Rect<f32>, seed: u32, scale:
         })
         .flatten()
         .collect()
+}
+
+pub enum FlowVectorFieldBuilder {
+    RightHandCurve,
+    BasicMulti,
+    Billow,
+    Checkerboard,
+    Fbm,
+    HybridMulti,
+    OpenSimplex,
+    Value,
+    Worley,
+}
+
+impl FlowVectorFieldBuilder {
+    pub fn next(&self) -> FlowVectorFieldBuilder {
+        match self {
+            Self::RightHandCurve => Self::BasicMulti,
+            Self::BasicMulti => Self::Billow,
+            Self::Billow => Self::Checkerboard,
+            Self::Checkerboard => Self::Fbm,
+            Self::Fbm => Self::HybridMulti,
+            Self::HybridMulti => Self::OpenSimplex,
+            Self::OpenSimplex => Self::Value,
+            Self::Value => Self::Worley,
+            Self::Worley => Self::RightHandCurve,
+        }
+    }
+
+    pub fn as_fn(&self) -> FlowVectorFieldBuilderFn {
+        Box::new(match self {
+            Self::RightHandCurve => new_right_hand_curve_flow_vectors,
+            Self::BasicMulti => new_basic_multi_noise_flow_vectors,
+            Self::Billow => new_billow_noise_flow_vectors,
+            Self::Checkerboard => new_checkboard_noise_flow_vectors,
+            Self::Fbm => new_fbm_noise_flow_vectors,
+            Self::HybridMulti => new_hybrid_multi_noise_flow_vectors,
+            Self::OpenSimplex => new_simplex_noise_flow_vectors,
+            Self::Value => new_value_noise_flow_vectors,
+            Self::Worley => new_worley_noise_flow_vectors,
+        })
+    }
 }
