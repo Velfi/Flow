@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 // This enum only exists because I'm unsure of how to mutate the model during drawing or
 // if that's even possible. This works around that by giving the draw phase a chance
 // to respond to the redraw request before `update()` sets the state to Complete.
@@ -32,5 +34,25 @@ impl Background {
             Self::White => Self::Vectors,
             Self::Vectors => Self::Black,
         }
+    }
+}
+
+impl Display for Background {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Black => "Black",
+                Self::White => "White",
+                Self::Vectors => "Vector Field",
+            }
+        )
+    }
+}
+
+impl Default for Background {
+    fn default() -> Self {
+        Self::Vectors
     }
 }

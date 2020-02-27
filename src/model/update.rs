@@ -210,7 +210,7 @@ pub fn update_ui(model: &mut Model) {
 
         if button()
             .down(10.0)
-            .label("Cycle Background")
+            .label(&format!("Background: {}", model.background))
             .set(model.widget_ids.background, ui_cell)
             .was_clicked()
         {
@@ -220,7 +220,7 @@ pub fn update_ui(model: &mut Model) {
 
         if button()
             .down(10.0)
-            .label("Cycle Line Cap")
+            .label(&format!("Line Cap: {}", model.line_cap))
             .set(model.widget_ids.line_cap, ui_cell)
             .was_clicked()
         {

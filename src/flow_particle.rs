@@ -1,4 +1,5 @@
 use nannou::prelude::*;
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub struct FlowParticle {
@@ -104,5 +105,24 @@ impl LineCap {
             Self::Square => Self::Round,
             Self::Round => Self::Square,
         }
+    }
+}
+
+impl Display for LineCap {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Square => "Square",
+                Self::Round => "Round",
+            }
+        )
+    }
+}
+
+impl Default for LineCap {
+    fn default() -> Self {
+        Self::Round
     }
 }
