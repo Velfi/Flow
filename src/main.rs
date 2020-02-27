@@ -7,7 +7,7 @@ mod widget_ids;
 
 use model::{update, Model};
 
-const CONTROLS: &'static str = r#"
+const CONTROLS: &str = r#"
 Space - Spawn new particle in a random location
 A     - Toggle On/Off. Automatically spawn a particle every frame unless too many already exist
 B     - Clear the screen and change the background

@@ -3,6 +3,7 @@ use nannou::ui::prelude::*;
 pub struct WidgetIds {
     pub background: widget::Id,
     pub hide_ui: widget::Id,
+    pub kill_all_particles: widget::Id,
     pub line_cap: widget::Id,
     pub noise_fn: widget::Id,
     pub noise_scale: widget::Id,
@@ -19,6 +20,7 @@ impl WidgetIds {
         Self {
             background: ui.generate_widget_id(),
             hide_ui: ui.generate_widget_id(),
+            kill_all_particles: ui.generate_widget_id(),
             line_cap: ui.generate_widget_id(),
             noise_fn: ui.generate_widget_id(),
             noise_scale: ui.generate_widget_id(),

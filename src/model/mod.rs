@@ -30,7 +30,9 @@ pub struct Model {
     pub automatically_spawn_particles: bool,
     pub background: Background,
     pub color_palette: Palette,
+    pub draw_particle_mode: bool,
     pub flow_particles: Vec<FlowParticle>,
+    pub flow_vector_field_builder_type: FlowVectorFieldBuilder,
     pub flow_vectors: Vec<FlowVector>,
     pub grid_height: usize,
     pub grid_width: usize,
@@ -41,7 +43,6 @@ pub struct Model {
     pub new_flow_vector_fn: FlowVectorFieldBuilderFn,
     pub noise_scale: f64,
     pub noise_seed: u32,
-    pub flow_vector_field_builder_type: FlowVectorFieldBuilder,
     pub particle_auto_spawn_limit: usize,
     pub particle_cleanup_requested: bool,
     pub particle_lifetime: f32,
@@ -51,7 +52,7 @@ pub struct Model {
     pub redraw_background: RedrawBackground,
     pub rng: rand::rngs::ThreadRng,
     pub show_ui: bool,
-    pub ui: Ui,
+    pub ui: Option<Ui>,
     pub vector_magnitude: f32,
     pub vector_spacing: f32,
     pub widget_ids: WidgetIds,
@@ -68,14 +69,15 @@ impl Model {
             .view(view::view)
             .mouse_moved(update::mouse_moved)
             .mouse_pressed(update::mouse_pressed)
+            .mouse_released(update::mouse_released)
             .key_pressed(update::key_pressed)
             .resized(update::resized)
             .build()
             .unwrap();
 
-        let mut ui = app.new_ui().build().unwrap();
+        let mut ui = Some(app.new_ui().build().unwrap());
 
-        let widget_ids = WidgetIds::new(&mut ui);
+        let widget_ids = WidgetIds::new(ui.as_mut().unwrap());
 
         let mut rng = rand::thread_rng();
         let noise_seed = rng.gen_range(0, 100_000);
@@ -98,7 +100,8 @@ impl Model {
             automatically_spawn_particles: false,
             background: Background::Vectors,
             color_palette: Palette::Default,
-            flow_particles: Vec::with_capacity(64),
+            draw_particle_mode: false,
+            flow_particles: Vec::with_capacity(DEFAULT_AUTO_SPAWN_PARTICLE_COUNT_LIMIT),
             flow_vectors: Vec::new(),
             grid_height: DEFAULT_GRID_H,
             grid_width: DEFAULT_GRID_W,
@@ -154,11 +157,6 @@ impl Model {
         self.flow_particles.push(new_particle);
     }
 
-    pub fn reset(&mut self) {
-        self.flow_particles = Vec::new();
-        self.redraw_background = RedrawBackground::Pending;
-    }
-
     pub fn get_random_xy(&self) -> Vector2<f32> {
         let x = map_range(
             rand::random(),
@@ -187,6 +185,12 @@ impl Model {
 
     pub fn regen_flow_vectors(&mut self) {
         self.flow_vectors = (self.new_flow_vector_fn)(self);
+        self.background = Background::Vectors;
+        self.redraw_background = RedrawBackground::Pending;
+    }
+
+    pub fn redraw_background(&mut self) {
+        self.redraw_background = RedrawBackground::Pending;
     }
 }
 

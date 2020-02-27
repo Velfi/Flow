@@ -40,6 +40,11 @@ pub fn view(app: &App, model: &Model, frame: &Frame) {
     // TODO figure out how to save the background, drawing, and ui layers separately
     if model.show_ui {
         // Draw the state of the `Ui` to the frame.
-        model.ui.draw_to_frame(app, &frame).unwrap();
+        model
+            .ui
+            .as_ref()
+            .unwrap()
+            .draw_to_frame(app, &frame)
+            .unwrap();
     }
 }
