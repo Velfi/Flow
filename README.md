@@ -1,6 +1,6 @@
 # Particle Flow Field
 
-![A rainbow-colored flow field][preview]
+![A rainbow-colored flow field][Preview.png]
 
 ## Getting started
 
@@ -35,13 +35,5 @@ Also, mouse input can be a bit buggy on MacOS, sorry about that.
 
 I haven't figured out how to paint to different frames, so the ui will remain visible after hiding until it gets painted over or the background is switched by pressing B.
 
-<video controls width="900">
-  <source src="FlowFieldAnimation1.mov"
-          type="video/mp4">
-    Sorry, your browser doesn't support embedded videos.
-</video>
-
-![Flow Field Animation 1](FlowFieldAnimation1.mov)
-![Flow Field Animation 2](FlowFieldAnimation2.mov)
-
-[preview]: Preview.png "Flow Field Screenshot"
+![Flow Field Animation 1](FlowFieldAnimation1.gif)
+![Flow Field Animation 2](FlowFieldAnimation2.gif)
