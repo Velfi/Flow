@@ -1,6 +1,6 @@
 # Particle Flow Field
 
-![A rainbow-colored flow field][Preview.png]
+![A rainbow-colored flow field](Preview.png)
 
 ## Getting started
 
