@@ -99,7 +99,7 @@ impl Model {
             _window,
             automatically_spawn_particles: false,
             background: Background::Vectors,
-            color_palette: Palette::Default,
+            color_palette: Default::default(),
             draw_particle_mode: false,
             flow_particles: Vec::with_capacity(DEFAULT_AUTO_SPAWN_PARTICLE_COUNT_LIMIT),
             flow_vectors: Vec::new(),

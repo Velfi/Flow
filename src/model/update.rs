@@ -229,7 +229,7 @@ pub fn update_ui(model: &mut Model) {
 
         if button()
             .down(10.0)
-            .label("Cycle Color Palette")
+            .label(&format!("Palette: {}", model.color_palette))
             .set(model.widget_ids.palette, ui_cell)
             .was_clicked()
         {

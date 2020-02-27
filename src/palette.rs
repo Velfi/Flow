@@ -1,7 +1,10 @@
-pub const CASTLEVANIA: &[&str] = &["C7855C", "9A5F4B", "2F2227", "183AD0", "6B94D7"];
-pub const DEFAULT: &[&str] = &["2F5564", "40A997", "DDB689", "E58844", "D66358"];
-pub const FLOWERS: &[&str] = &["3A442B", "6F743A", "AFA393", "B3998F", "D13335"];
-pub const LEAVES: &[&str] = &["325F59", "56BD79", "F1DE5B", "F8BB0A", "F54B24"];
+use std::fmt::{self, Display};
+
+pub const TRANSPARENT_BLACK: &[&str] = &["00000011"];
+pub const TRANSPARENT_WHITE: &[&str] = &["FFFFFF11"];
+pub const CM1: &[&str] = &["534627", "127797", "12CCDB", "D8DB96", "F4421E"];
+pub const CM2: &[&str] = &["18454D", "3F7DA8", "F1F5F3", "DA9E32", "BB5F42"];
+pub const CM3: &[&str] = &["2F5564", "40A997", "DDB689", "E58844", "D66358"];
 
 pub const VIRIDIS: &[&str] = &[
     "440154", "481567", "482677", "453781", "404788", "39568C", "33638D", "2D708E", "287D8E",
@@ -47,57 +50,120 @@ pub const TURBO: &[&str] = &[
     "850701", "810602", "7e0502", "7a0402",
 ];
 
-#[allow(dead_code)]
-pub const TRANSPARENT_BLACK: &[&str] = &["00000011"];
+pub const ARNE: &[&str] = &[
+    "000000", "9D9D9D", "FFFFFF", "BE2633", "E06F8B", "493C2B", "A46422", "EB8931", "F7E26B",
+    "2F484E", "44891A", "A3CE27", "1B2632", "005784", "31A2F2", "B2DCEF",
+];
 
-#[allow(dead_code)]
-pub const TRANSPARENT_WHITE: &[&str] = &["FFFFFF11"];
+pub const JMP: &[&str] = &[
+    "000000", "191028", "46af45", "a1d685", "453e78", "7664fe", "833129", "9ec2e8", "dc534b",
+    "e18d79", "d6b97b", "e9d8a1", "216c4b", "d365c8", "afaab9", "f5f4eb",
+];
 
-// pub fn new_random_palette() -> std::vec::Vec<&'static str> {
-//     [CASTLEVANIA, DEFAULT, FLOWERS, LEAVES, VIRIDIS, MAGMA, TURBO]
-//         .choose(&mut rand::thread_rng())
-//         .unwrap()
-//         .to_vec()
-// }
+pub const ZUGHY_32: &[&str] = &[
+    "472d3c", "5e3643", "7a444a", "a05b53", "bf7958", "eea160", "f4cca1", "b6d53c", "71aa34",
+    "397b44", "3c5956", "302c2e", "5a5353", "7d7071", "a0938e", "cfc6b8", "dff6f5", "8aebf1",
+    "28ccdf", "3978a8", "394778", "39314b", "564064", "8e478c", "cd6093", "ffaeb6", "f4b41b",
+    "f47e1b", "e6482e", "a93b3b", "827094", "4f546b",
+];
+
+pub const ENDESGA_64: &[&str] = &[
+    "ff0040", "131313", "1b1b1b", "272727", "3d3d3d", "5d5d5d", "858585", "b4b4b4", "ffffff",
+    "c7cfdd", "92a1b9", "657392", "424c6e", "2a2f4e", "1a1932", "0e071b", "1c121c", "391f21",
+    "5d2c28", "8a4836", "bf6f4a", "e69c69", "f6ca9f", "f9e6cf", "edab50", "e07438", "c64524",
+    "8e251d", "ff5000", "ed7614", "ffa214", "ffc825", "ffeb57", "d3fc7e", "99e65f", "5ac54f",
+    "33984b", "1e6f50", "134c4c", "0c2e44", "00396d", "0069aa", "0098dc", "00cdf9", "0cf1ff",
+    "94fdff", "fdd2ed", "f389f5", "db3ffd", "7a09fa", "3003d9", "0c0293", "03193f", "3b1443",
+    "622461", "93388f", "ca52c9", "c85086", "f68187", "f5555d", "ea323c", "c42430", "891e2b",
+    "571c27",
+];
+
+pub const FANTASY: &[&str] = &[
+    "1f240a", "39571c", "a58c27", "efac28", "efd8a1", "ab5c1c", "183f39", "ef692f", "efb775",
+    "a56243", "773421", "724113", "2a1d0d", "392a1c", "684c3c", "927e6a", "276468", "ef3a0c",
+    "45230d", "3c9f9c", "9b1a0a", "36170c", "550f0a", "300f0a",
+];
 
 pub enum Palette {
-    Castlevania,
-    Default,
-    Flowers,
-    Leaves,
+    Arne,
+    CM1,
+    CM2,
+    CM3,
+    Endesga64,
+    Fantasy,
+    JMP,
     Magma,
-    Viridis,
-    Turbo,
     TransparentBlack,
     TransparentWhite,
+    Turbo,
+    Viridis,
+    Zughy32,
 }
 
 impl Palette {
     pub fn next(&self) -> Self {
         match self {
-            Self::Castlevania => Self::Default,
-            Self::Default => Self::Flowers,
-            Self::Flowers => Self::Leaves,
-            Self::Leaves => Self::Magma,
-            Self::Magma => Self::Viridis,
-            Self::Viridis => Self::Turbo,
-            Self::Turbo => Self::TransparentBlack,
+            Self::Arne => Self::CM1,
+            Self::CM1 => Self::CM2,
+            Self::CM2 => Self::CM3,
+            Self::CM3 => Self::Endesga64,
+            Self::Endesga64 => Self::Fantasy,
+            Self::Fantasy => Self::JMP,
+            Self::JMP => Self::Magma,
+            Self::Magma => Self::TransparentBlack,
             Self::TransparentBlack => Self::TransparentWhite,
-            Self::TransparentWhite => Self::Castlevania,
+            Self::TransparentWhite => Self::Turbo,
+            Self::Turbo => Self::Viridis,
+            Self::Viridis => Self::Zughy32,
+            Self::Zughy32 => Self::Arne,
         }
     }
 
     pub fn as_colors(&self) -> &'static [&'static str] {
         match self {
-            Self::Castlevania => CASTLEVANIA,
-            Self::Default => DEFAULT,
-            Self::Flowers => FLOWERS,
-            Self::Leaves => LEAVES,
+            Self::Arne => ARNE,
+            Self::CM1 => CM1,
+            Self::CM2 => CM2,
+            Self::CM3 => CM3,
+            Self::Endesga64 => ENDESGA_64,
+            Self::Fantasy => FANTASY,
+            Self::JMP => JMP,
             Self::Magma => MAGMA,
-            Self::Viridis => VIRIDIS,
-            Self::Turbo => TURBO,
             Self::TransparentBlack => TRANSPARENT_BLACK,
             Self::TransparentWhite => TRANSPARENT_WHITE,
+            Self::Turbo => TURBO,
+            Self::Viridis => VIRIDIS,
+            Self::Zughy32 => ZUGHY_32,
         }
+    }
+}
+
+impl Display for Palette {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Arne => "Arne",
+                Self::CM1 => "CM1",
+                Self::CM2 => "CM2",
+                Self::CM3 => "CM3",
+                Self::Endesga64 => "Endesga 64",
+                Self::Fantasy => "Fantasy",
+                Self::JMP => "JMP",
+                Self::Magma => "Magma",
+                Self::TransparentBlack => "Black Fog",
+                Self::TransparentWhite => "White Fog",
+                Self::Turbo => "Turbo",
+                Self::Viridis => "Viridis",
+                Self::Zughy32 => "Zughy 32",
+            }
+        )
+    }
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Palette::Viridis
     }
 }
