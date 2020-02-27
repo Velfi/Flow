@@ -84,13 +84,19 @@ pub const FANTASY: &[&str] = &[
     "45230d", "3c9f9c", "9b1a0a", "36170c", "550f0a", "300f0a",
 ];
 
+pub const BLUE_RED: &[&str] = &["FF000022", "0000FF22",];
+
+pub const FLESH: &[&str] = &["E8B89911", "FFC3A0", "78011622", "93482322", "FF8F6D"];
+
 pub enum Palette {
     Arne,
+    BlueRed,
     CM1,
     CM2,
     CM3,
     Endesga64,
     Fantasy,
+    Flesh,
     JMP,
     Magma,
     TransparentBlack,
@@ -115,18 +121,22 @@ impl Palette {
             Self::TransparentWhite => Self::Turbo,
             Self::Turbo => Self::Viridis,
             Self::Viridis => Self::Zughy32,
-            Self::Zughy32 => Self::Arne,
+            Self::Zughy32 => Self::BlueRed,
+            Self::BlueRed => Self::Flesh,
+            Self::Flesh => Self::Arne,
         }
     }
 
     pub fn as_colors(&self) -> &'static [&'static str] {
         match self {
             Self::Arne => ARNE,
+            Self::BlueRed => BLUE_RED,
             Self::CM1 => CM1,
             Self::CM2 => CM2,
             Self::CM3 => CM3,
             Self::Endesga64 => ENDESGA_64,
             Self::Fantasy => FANTASY,
+            Self::Flesh => FLESH,
             Self::JMP => JMP,
             Self::Magma => MAGMA,
             Self::TransparentBlack => TRANSPARENT_BLACK,
@@ -145,11 +155,13 @@ impl Display for Palette {
             "{}",
             match self {
                 Self::Arne => "Arne",
+                Self::BlueRed => "Blue & Red",
                 Self::CM1 => "CM1",
                 Self::CM2 => "CM2",
                 Self::CM3 => "CM3",
                 Self::Endesga64 => "Endesga 64",
                 Self::Fantasy => "Fantasy",
+                Self::Flesh => "Flesh",
                 Self::JMP => "JMP",
                 Self::Magma => "Magma",
                 Self::TransparentBlack => "Black Fog",
