@@ -1,8 +1,10 @@
-use super::enums::RedrawBackground;
-use super::Model;
+use super::{enums::RedrawBackground, Model};
 use crate::model::constants::DEFAULT_AUTO_SPAWN_PARTICLE_COUNT_LIMIT;
-use nannou::prelude::{App, Key, MouseButton, Update, Vector2};
-use nannou::ui::prelude::*;
+use log::info;
+use nannou::{
+    prelude::{App, Key, MouseButton, Update, Vec2},
+    ui::prelude::*,
+};
 use rand::Rng;
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
@@ -29,18 +31,12 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             .retain(|fp| fp.age() < particle_lifetime);
         model.particle_cleanup_requested = false;
     }
-    let left = model.window_rect.left();
-    let right = model.window_rect.right();
-    let bottom = model.window_rect.bottom();
-    let top = model.window_rect.top();
-    let vector_spacing = model.vector_spacing;
 
-    model.flow_particles.retain(|fp| {
-        fp.xy().x > left + vector_spacing
-            && fp.xy().x < right - vector_spacing
-            && fp.xy().y > bottom + vector_spacing
-            && fp.xy().y < top - vector_spacing
-    });
+    let valid_area = model.window_rect.pad(model.vector_spacing);
+
+    model
+        .flow_particles
+        .retain(|fp| valid_area.contains(*fp.xy()));
 
     if model.automatically_spawn_particles
         && model.flow_particles.len() < model.particle_auto_spawn_limit
@@ -53,7 +49,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-pub fn mouse_moved(_app: &App, model: &mut Model, pos: Vector2) {
+pub fn mouse_moved(_app: &App, model: &mut Model, pos: Vec2) {
     model.mouse_xy = pos;
 }
 
@@ -92,7 +88,7 @@ pub fn key_pressed(_app: &App, model: &mut Model, key: Key) {
             model.line_cap = model.line_cap.next();
         }
         Key::N => {
-            model.noise_seed = model.rng.gen_range(0, 100_000);
+            model.noise_seed = model.rng.gen_range(0..100_000);
             model.regen_flow_vectors();
         }
         Key::Grave => {
@@ -102,7 +98,7 @@ pub fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     };
 }
 
-pub fn resized(_app: &App, model: &mut Model, _: Vector2) {
+pub fn resized(_app: &App, model: &mut Model, _: Vec2) {
     model.redraw_background = RedrawBackground::Pending;
 }
 
@@ -138,7 +134,7 @@ pub fn update_ui(model: &mut Model) {
             .was_clicked()
         {
             model.show_ui = false;
-            println!("Controls hidden, press \"~\" to show them again")
+            info!("Controls hidden, press \"~\" to show them again")
         }
 
         if button()
@@ -147,7 +143,7 @@ pub fn update_ui(model: &mut Model) {
             .set(model.widget_ids.noise_seed, ui_cell)
             .was_clicked()
         {
-            model.noise_seed = model.rng.gen_range(0, 100_000);
+            model.noise_seed = model.rng.gen_range(0..100_000);
             model.regen_flow_vectors();
         }
 

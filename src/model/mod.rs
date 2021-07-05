@@ -18,7 +18,7 @@ use constants::{
 };
 use enums::{Background, RedrawBackground};
 use nannou::{
-    geom::{Rect, Vector2},
+    geom::{Rect, Vec2},
     math::map_range,
     window, App, Ui,
 };
@@ -37,8 +37,8 @@ pub struct Model {
     pub grid_height: usize,
     pub grid_width: usize,
     pub line_cap: LineCap,
-    pub mouse_xy: Vector2<f32>,
-    pub nearest_angle_fn: Box<dyn Fn(Vector2<f32>, &Model) -> f32>,
+    pub mouse_xy: Vec2,
+    pub nearest_angle_fn: Box<dyn Fn(Vec2, &Model) -> f32>,
     pub new_flow_particle_fn: FlowParticleBuilderFn,
     pub new_flow_vector_fn: FlowVectorFieldBuilderFn,
     pub noise_scale: f64,
@@ -56,7 +56,7 @@ pub struct Model {
     pub vector_magnitude: f32,
     pub vector_spacing: f32,
     pub widget_ids: WidgetIds,
-    pub window_rect: Rect<f32>,
+    pub window_rect: Rect,
 }
 
 impl Model {
@@ -65,7 +65,7 @@ impl Model {
 
         let _window = app
             .new_window()
-            .with_dimensions(DEFAULT_RESOLUTION_W, DEFAULT_RESOLUTION_H)
+            .size(DEFAULT_RESOLUTION_W, DEFAULT_RESOLUTION_H)
             .view(view::view)
             .mouse_moved(update::mouse_moved)
             .mouse_pressed(update::mouse_pressed)
@@ -80,7 +80,7 @@ impl Model {
         let widget_ids = WidgetIds::new(ui.as_mut().unwrap());
 
         let mut rng = rand::thread_rng();
-        let noise_seed = rng.gen_range(0, 100_000);
+        let noise_seed = rng.gen_range(0..100_000);
 
         let new_flow_particle_fn = Box::new(|options: FlowParticleBuilderFnOptions| {
             FlowParticle::new(
@@ -106,7 +106,7 @@ impl Model {
             grid_height: DEFAULT_GRID_H,
             grid_width: DEFAULT_GRID_W,
             line_cap: LineCap::Round,
-            mouse_xy: Vector2::new(0.0, 0.0),
+            mouse_xy: Vec2::new(0.0, 0.0),
             nearest_angle_fn: Box::new(nearest_angle_in_grid),
             new_flow_particle_fn,
             flow_vector_field_builder_type: FlowVectorFieldBuilder::Billow,
@@ -134,7 +134,7 @@ impl Model {
         model
     }
 
-    pub fn spawn_new_particle(&mut self, xy: Vector2<f32>) {
+    pub fn spawn_new_particle(&mut self, xy: Vec2) {
         let age = map_range(rand::random(), 0.0, 1.0, 0.0, self.particle_lifetime);
         let color = random_color(&self.color_palette.as_colors());
         let weight = map_range(
@@ -149,7 +149,7 @@ impl Model {
             aging_rate: DEFAULT_AGING_RATE,
             color,
             line_cap: self.line_cap,
-            step_length: self.rng.gen_range(0.0, 1.0),
+            step_length: self.rng.gen_range(0.0..1.0),
             weight,
             xy,
         });
@@ -157,7 +157,7 @@ impl Model {
         self.flow_particles.push(new_particle);
     }
 
-    pub fn get_random_xy(&self) -> Vector2<f32> {
+    pub fn get_random_xy(&self) -> Vec2 {
         let x = map_range(
             rand::random(),
             0.0,
@@ -173,7 +173,7 @@ impl Model {
             self.window_rect.top(),
         );
 
-        Vector2::new(x, y)
+        Vec2::new(x, y)
     }
 
     pub fn get_origin(&self) -> (f32, f32) {
@@ -194,7 +194,7 @@ impl Model {
     }
 }
 
-pub fn nearest_angle_in_grid(xy: Vector2<f32>, model: &Model) -> f32 {
+pub fn nearest_angle_in_grid(xy: Vec2, model: &Model) -> f32 {
     let origin_x = model.window_rect.left() as f32 + model.vector_spacing;
     let origin_y = model.window_rect.bottom() as f32 + model.vector_spacing;
     let row_index = ((xy.x - origin_x) / model.vector_spacing).round() as usize;

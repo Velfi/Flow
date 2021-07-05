@@ -2,7 +2,7 @@ use super::enums::{Background, RedrawBackground};
 use super::Model;
 use nannou::prelude::{App, Frame, BLACK, WHITE};
 
-pub fn view(app: &App, model: &Model, frame: &Frame) {
+pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     if model.redraw_background == RedrawBackground::Pending {

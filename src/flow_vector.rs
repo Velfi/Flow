@@ -1,18 +1,21 @@
 use crate::model::Model;
-use nannou::noise::{NoiseFn, Seedable};
-use nannou::prelude::*;
+use log::debug;
+use nannou::{
+    noise::{NoiseFn, Seedable},
+    prelude::*,
+};
 
 #[derive(Debug)]
 pub struct FlowVector {
-    xy: Vector2<f32>,
-    vector: Vector2<f32>,
+    xy: Vec2,
+    vector: Vec2,
 }
 
 impl FlowVector {
-    pub fn new(xy: Vector2<f32>, magnitude: f32) -> Self {
+    pub fn new(xy: Vec2, magnitude: f32) -> Self {
         Self {
             xy,
-            vector: Vector2::new(0.0, magnitude),
+            vector: Vec2::new(0.0, magnitude),
         }
     }
 
@@ -29,12 +32,10 @@ impl FlowVector {
     }
 
     fn mag_sq(&self) -> f32 {
-        let Vector2 { x, y } = self.vector;
-
-        x.powi(2) + y.powi(2)
+        self.vector.x.powi(2) + self.vector.y.powi(2)
     }
 
-    pub fn draw(&self, draw: &app::Draw) {
+    pub fn draw(&self, draw: &Draw) {
         let xy1 = self.xy;
         let xy2 = self.xy + self.vector;
 
@@ -50,6 +51,7 @@ impl FlowVector {
 pub type FlowVectorFieldBuilderFn = Box<dyn Fn(&Model) -> Vec<FlowVector>>;
 
 pub fn new_right_hand_curve_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field with a right handed curve");
     let (origin_x, origin_y) = model.get_origin();
 
     (0..model.grid_height)
@@ -72,48 +74,61 @@ pub fn new_right_hand_curve_flow_vectors(model: &Model) -> Vec<FlowVector> {
 }
 
 pub fn new_simplex_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from Simplex noise");
     let noise = nannou::noise::OpenSimplex::new().set_seed(model.noise_seed);
 
     new_noise_flow_vectors(model, &noise)
 }
 
 pub fn new_basic_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from Basic Multi-fractal noise");
     let noise = nannou::noise::BasicMulti::new().set_seed(model.noise_seed);
 
     new_noise_flow_vectors(model, &noise)
 }
 
 pub fn new_billow_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from Billow noise");
     let noise = nannou::noise::Billow::new().set_seed(model.noise_seed);
 
     new_noise_flow_vectors(model, &noise)
 }
 
-pub fn new_checkboard_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
-    let noise = nannou::noise::Checkerboard::new();
+pub fn new_terraced_billow_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from Terraced Billow noise");
+    let billow = nannou::noise::Billow::new().set_seed(model.noise_seed);
+    let noise = nannou::noise::Terrace::new(&billow)
+        .add_control_point(0.0001)
+        .add_control_point(0.001)
+        .add_control_point(0.01)
+        .add_control_point(0.1);
 
     new_noise_flow_vectors(model, &noise)
 }
 
 pub fn new_fbm_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from FBM noise");
     let noise = nannou::noise::Fbm::new().set_seed(model.noise_seed);
 
     new_noise_flow_vectors(model, &noise)
 }
 
 pub fn new_hybrid_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from Hybrid Multi-fractal noise");
     let noise = nannou::noise::HybridMulti::new().set_seed(model.noise_seed);
 
     new_noise_flow_vectors(model, &noise)
 }
 
 pub fn new_value_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from Value noise");
     let noise = nannou::noise::Value::new().set_seed(model.noise_seed);
 
     new_noise_flow_vectors(model, &noise)
 }
 
 pub fn new_worley_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
+    debug!("creating new vector field from Worley (Voronoi-like) noise");
     let noise = nannou::noise::Worley::new().set_seed(model.noise_seed);
 
     new_noise_flow_vectors(model, &noise)
@@ -149,7 +164,7 @@ pub enum FlowVectorFieldBuilder {
     RightHandCurve,
     BasicMulti,
     Billow,
-    Checkerboard,
+    TerracedBillow,
     Fbm,
     HybridMulti,
     OpenSimplex,
@@ -162,8 +177,8 @@ impl FlowVectorFieldBuilder {
         match self {
             Self::RightHandCurve => Self::BasicMulti,
             Self::BasicMulti => Self::Billow,
-            Self::Billow => Self::Checkerboard,
-            Self::Checkerboard => Self::Fbm,
+            Self::Billow => Self::TerracedBillow,
+            Self::TerracedBillow => Self::Fbm,
             Self::Fbm => Self::HybridMulti,
             Self::HybridMulti => Self::OpenSimplex,
             Self::OpenSimplex => Self::Value,
@@ -177,7 +192,7 @@ impl FlowVectorFieldBuilder {
             Self::RightHandCurve => new_right_hand_curve_flow_vectors,
             Self::BasicMulti => new_basic_multi_noise_flow_vectors,
             Self::Billow => new_billow_noise_flow_vectors,
-            Self::Checkerboard => new_checkboard_noise_flow_vectors,
+            Self::TerracedBillow => new_terraced_billow_noise_flow_vectors,
             Self::Fbm => new_fbm_noise_flow_vectors,
             Self::HybridMulti => new_hybrid_multi_noise_flow_vectors,
             Self::OpenSimplex => new_simplex_noise_flow_vectors,

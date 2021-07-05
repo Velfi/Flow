@@ -5,6 +5,7 @@ mod palette;
 mod random_color;
 mod widget_ids;
 
+use log::info;
 use model::{update, Model};
 
 const CONTROLS: &str = r#"
@@ -24,8 +25,11 @@ Also, mouse input can be a bit buggy on MacOS, sorry about that.
 "#;
 
 fn main() {
-    println!("Starting up the flow field...");
-    println!("{}", CONTROLS);
+    let _ = dotenv::dotenv();
+    env_logger::init();
+
+    info!("Starting up the flow field...");
+    info!("{}", CONTROLS);
 
     nannou::app(model).update(update).run();
 }

@@ -7,10 +7,10 @@ pub struct FlowParticle {
     aging_rate: f32,
     color: Rgba<u8>,
     line_cap: LineCap,
-    previous_xy: Vector2<f32>,
+    previous_xy: Vec2,
     step_length: f32,
     weight: f32,
-    xy: Vector2<f32>,
+    xy: Vec2,
 }
 
 impl FlowParticle {
@@ -21,7 +21,7 @@ impl FlowParticle {
         line_cap: LineCap,
         step_length: f32,
         weight: f32,
-        xy: Vector2<f32>,
+        xy: Vec2,
     ) -> Self {
         FlowParticle {
             age,
@@ -42,7 +42,7 @@ impl FlowParticle {
         self.xy.y += (self.step_length + step_length) * f32::sin(nearest_angle.to_radians());
     }
 
-    pub fn draw(&self, draw: &app::Draw) {
+    pub fn draw(&self, draw: &Draw) {
         let d = draw
             .line()
             .color(self.color)
@@ -59,14 +59,14 @@ impl FlowParticle {
         self.age
     }
 
-    pub fn xy(&self) -> &Vector2<f32> {
+    pub fn xy(&self) -> &Vec2 {
         &self.xy
     }
 }
 
 impl Default for FlowParticle {
     fn default() -> Self {
-        let xy = Vector2::new(0.0, 0.0);
+        let xy = Vec2::new(0.0, 0.0);
 
         FlowParticle {
             age: 0.0,
@@ -90,7 +90,7 @@ pub struct FlowParticleBuilderFnOptions {
     pub line_cap: LineCap,
     pub step_length: f32,
     pub weight: f32,
-    pub xy: Vector2<f32>,
+    pub xy: Vec2,
 }
 
 #[derive(Debug, Clone, Copy)]
