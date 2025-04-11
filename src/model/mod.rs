@@ -1,32 +1,26 @@
-mod constants;
+pub mod constants;
 mod enums;
-mod update;
-mod view;
+pub mod update;
+pub mod view;
 
+use std::ops::{Add, Div, Mul, Sub};
+use macroquad::math::{Rect, Vec2};
 use crate::{
     flow_particle::{FlowParticle, FlowParticleBuilderFn, FlowParticleBuilderFnOptions, LineCap},
     flow_vector::{FlowVector, FlowVectorFieldBuilder, FlowVectorFieldBuilderFn},
     palette::Palette,
     random_color::random_color,
-    widget_ids::WidgetIds,
 };
 use constants::{
     DEFAULT_AGING_RATE, DEFAULT_AUTO_SPAWN_PARTICLE_COUNT_LIMIT, DEFAULT_GRID_H, DEFAULT_GRID_W,
     DEFAULT_MAX_WEIGHT, DEFAULT_MIN_WEIGHT, DEFAULT_NOISE_SCALE, DEFAULT_PARTICLE_LIFETIME,
-    DEFAULT_RESOLUTION_H, DEFAULT_RESOLUTION_W, DEFAULT_STEP_LENGTH, DEFAULT_VECTOR_MAGNITUDE,
+    DEFAULT_STEP_LENGTH, DEFAULT_VECTOR_MAGNITUDE, DEFAULT_RESOLUTION_W, DEFAULT_RESOLUTION_H,
     DEFAULT_VECTOR_SPACING,
 };
 use enums::{Background, RedrawBackground};
-use nannou::{
-    geom::{Rect, Vec2},
-    math::map_range,
-    window, App, Ui,
-};
 use rand::Rng;
-pub use update::update;
 
 pub struct Model {
-    pub _window: window::Id,
     pub automatically_spawn_particles: bool,
     pub background: Background,
     pub color_palette: Palette,
@@ -52,33 +46,19 @@ pub struct Model {
     pub redraw_background: RedrawBackground,
     pub rng: rand::rngs::ThreadRng,
     pub show_ui: bool,
-    pub ui: Option<Ui>,
     pub vector_magnitude: f32,
     pub vector_spacing: f32,
-    pub widget_ids: WidgetIds,
     pub window_rect: Rect,
 }
 
 impl Model {
-    pub fn new(app: &App) -> Self {
-        let window_rect = Rect::from_w_h(DEFAULT_RESOLUTION_W as f32, DEFAULT_RESOLUTION_H as f32);
-
-        let _window = app
-            .new_window()
-            .size(DEFAULT_RESOLUTION_W, DEFAULT_RESOLUTION_H)
-            .view(view::view)
-            .mouse_moved(update::mouse_moved)
-            .mouse_pressed(update::mouse_pressed)
-            .mouse_released(update::mouse_released)
-            .key_pressed(update::key_pressed)
-            .resized(update::resized)
-            .build()
-            .unwrap();
-
-        let mut ui = Some(app.new_ui().build().unwrap());
-
-        let widget_ids = WidgetIds::new(ui.as_mut().unwrap());
-
+    pub fn new() -> Self {
+        let window_rect = Rect::new(
+            0.0,
+            0.0,
+            DEFAULT_RESOLUTION_W as f32,
+            DEFAULT_RESOLUTION_H as f32,
+        );
         let mut rng = rand::thread_rng();
         let noise_seed = rng.gen_range(0..100_000);
 
@@ -96,7 +76,6 @@ impl Model {
         // let flow_vectors = new_simplex_noise_flow_vectors(&window_rect, noise_seed, noise_scale);
 
         let mut model = Self {
-            _window,
             automatically_spawn_particles: false,
             background: Background::Vectors,
             color_palette: Default::default(),
@@ -122,10 +101,8 @@ impl Model {
             redraw_background: RedrawBackground::Pending,
             rng,
             show_ui: true,
-            ui,
             vector_magnitude: DEFAULT_VECTOR_MAGNITUDE,
             vector_spacing: DEFAULT_VECTOR_SPACING,
-            widget_ids,
             window_rect,
         };
 
@@ -136,7 +113,7 @@ impl Model {
 
     pub fn spawn_new_particle(&mut self, xy: Vec2) {
         let age = map_range(rand::random(), 0.0, 1.0, 0.0, self.particle_lifetime);
-        let color = random_color(&self.color_palette.as_colors());
+        let color = random_color(self.color_palette.as_colors());
         let weight = map_range(
             rand::random(),
             0.0,
@@ -177,8 +154,8 @@ impl Model {
     }
 
     pub fn get_origin(&self) -> (f32, f32) {
-        let origin_x = self.window_rect.left() as f32 + self.vector_spacing;
-        let origin_y = self.window_rect.bottom() as f32 + self.vector_spacing;
+        let origin_x = self.window_rect.left() + self.vector_spacing;
+        let origin_y = self.window_rect.bottom() + self.vector_spacing;
 
         (origin_x, origin_y)
     }
@@ -194,9 +171,16 @@ impl Model {
     }
 }
 
+fn map_range<T>(value: T, in_min: T, in_max: T, out_min: T, out_max: T) -> T
+where
+    T: Copy + Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>,
+{
+    (value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min
+}
+
 pub fn nearest_angle_in_grid(xy: Vec2, model: &Model) -> f32 {
-    let origin_x = model.window_rect.left() as f32 + model.vector_spacing;
-    let origin_y = model.window_rect.bottom() as f32 + model.vector_spacing;
+    let origin_x = model.window_rect.left() + model.vector_spacing;
+    let origin_y = model.window_rect.bottom() + model.vector_spacing;
     let row_index = ((xy.x - origin_x) / model.vector_spacing).round() as usize;
     let column_index = ((xy.y - origin_y) / model.vector_spacing).round() as usize;
     let fv_index = row_index + column_index * model.grid_width;

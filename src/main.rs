@@ -3,10 +3,15 @@ mod flow_vector;
 mod model;
 mod palette;
 mod random_color;
-mod widget_ids;
 
 use log::info;
-use model::{update, Model};
+use macroquad::prelude::*;
+use crate::model::Model;
+use model::constants::{
+    DEFAULT_RESOLUTION_H, DEFAULT_RESOLUTION_W,
+};
+use crate::model::view::view;
+use crate::model::update::update;
 
 const CONTROLS: &str = r#"
 Left Click  - Spawn a new particle where you clicked
@@ -19,21 +24,32 @@ C           - Switch to the next color palette
 L           - Switch to the next line cap type
 N           - Generate a new noise seed and reset the game
 ~           - Show or hide the UI
-
-If some UI buttons and sliders seem to do nothing, it's because changes won't appear until you've pressed N to reset the game.
-Also, mouse input can be a bit buggy on MacOS, sorry about that.
 "#;
 
-fn main() {
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Flow".to_owned(),
+        fullscreen: false,
+        window_width: DEFAULT_RESOLUTION_W as i32,
+        window_height: DEFAULT_RESOLUTION_H as i32,
+        sample_count: 4,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
+async fn main() {
     let _ = dotenv::dotenv();
     env_logger::init();
 
     info!("Starting up the flow field...");
     info!("{}", CONTROLS);
 
-    nannou::app(model).update(update).run();
-}
 
-fn model(app: &nannou::App) -> Model {
-    Model::new(app)
+    let mut model = Model::new();
+    loop {
+        update(&mut model);
+        view(&model);
+        next_frame().await
+    }
 }
