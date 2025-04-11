@@ -1,11 +1,11 @@
-use nannou::prelude::*;
 use std::fmt::{self, Display};
+use macroquad::prelude::*;
 
 #[derive(Debug)]
 pub struct FlowParticle {
     age: f32,
     aging_rate: f32,
-    color: Rgba<u8>,
+    color: Color,
     line_cap: LineCap,
     previous_xy: Vec2,
     step_length: f32,
@@ -17,7 +17,7 @@ impl FlowParticle {
     pub fn new(
         age: f32,
         aging_rate: f32,
-        color: Rgba<u8>,
+        color: Color,
         line_cap: LineCap,
         step_length: f32,
         weight: f32,
@@ -42,17 +42,15 @@ impl FlowParticle {
         self.xy.y += (self.step_length + step_length) * f32::sin(nearest_angle.to_radians());
     }
 
-    pub fn draw(&self, draw: &Draw) {
-        let d = draw
-            .line()
-            .color(self.color)
-            .points(self.previous_xy, self.xy)
-            .weight(self.weight);
+    pub fn draw(&self) {
+        let (Vec2 { x: x1, y: y1}, Vec2 { x: x2, y: y2}) = (self.previous_xy, self.xy);
+        draw_line(x1, y1, x2, y2, self.weight, self.color);
 
-        match self.line_cap {
-            LineCap::Square => d.start_cap_square().end_cap_square(),
-            LineCap::Round => d.start_cap_round().end_cap_round(),
-        };
+        // TODO fix line cap
+        // match self.line_cap {
+        //     LineCap::Square => d.start_cap_square().end_cap_square(),
+        //     LineCap::Round => d.start_cap_round().end_cap_round(),
+        // };
     }
 
     pub fn age(&self) -> f32 {
@@ -71,7 +69,7 @@ impl Default for FlowParticle {
         FlowParticle {
             age: 0.0,
             aging_rate: 0.1,
-            color: Rgba::new(0, 0, 0, 255),
+            color: BLACK,
             line_cap: LineCap::Round,
             previous_xy: xy,
             step_length: 1.0,
@@ -86,7 +84,7 @@ pub type FlowParticleBuilderFn = Box<dyn Fn(FlowParticleBuilderFnOptions) -> Flo
 pub struct FlowParticleBuilderFnOptions {
     pub age: f32,
     pub aging_rate: f32,
-    pub color: Rgba<u8>,
+    pub color: Color,
     pub line_cap: LineCap,
     pub step_length: f32,
     pub weight: f32,

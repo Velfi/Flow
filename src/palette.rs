@@ -92,6 +92,7 @@ pub const CHRISTY_BLUE: &[&str] = &[
     "1e74d7", "31acf0", "366792", "557ac8", "7293d8", "95c9f0", "98f0fe",
 ];
 
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
 pub enum Palette {
     Arne,
     BlueRed,
@@ -102,11 +103,12 @@ pub enum Palette {
     Endesga64,
     Fantasy,
     Flesh,
-    JMP,
+    Jmp,
     Magma,
     TransparentBlack,
     TransparentWhite,
     Turbo,
+    #[default]
     Viridis,
     Zughy32,
 }
@@ -119,8 +121,8 @@ impl Palette {
             Self::CM2 => Self::CM3,
             Self::CM3 => Self::Endesga64,
             Self::Endesga64 => Self::Fantasy,
-            Self::Fantasy => Self::JMP,
-            Self::JMP => Self::Magma,
+            Self::Fantasy => Self::Jmp,
+            Self::Jmp => Self::Magma,
             Self::Magma => Self::TransparentBlack,
             Self::TransparentBlack => Self::TransparentWhite,
             Self::TransparentWhite => Self::Turbo,
@@ -144,7 +146,7 @@ impl Palette {
             Self::Endesga64 => ENDESGA_64,
             Self::Fantasy => FANTASY,
             Self::Flesh => FLESH,
-            Self::JMP => JMP,
+            Self::Jmp => JMP,
             Self::Magma => MAGMA,
             Self::TransparentBlack => TRANSPARENT_BLACK,
             Self::TransparentWhite => TRANSPARENT_WHITE,
@@ -170,7 +172,7 @@ impl Display for Palette {
                 Self::Endesga64 => "Endesga 64",
                 Self::Fantasy => "Fantasy",
                 Self::Flesh => "Flesh",
-                Self::JMP => "JMP",
+                Self::Jmp => "JMP",
                 Self::Magma => "Magma",
                 Self::TransparentBlack => "Black Fog",
                 Self::TransparentWhite => "White Fog",
@@ -179,11 +181,5 @@ impl Display for Palette {
                 Self::Zughy32 => "Zughy 32",
             }
         )
-    }
-}
-
-impl Default for Palette {
-    fn default() -> Self {
-        Palette::Viridis
     }
 }
