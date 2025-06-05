@@ -1,9 +1,9 @@
 use crate::model::Model;
 use log::debug;
-use nannou::{
-    noise::{NoiseFn, Seedable},
-    prelude::*,
-};
+use glam::Vec2;
+use noise::{NoiseFn, OpenSimplex, Billow, BasicMulti, Fbm, HybridMulti, Value, Worley, MultiFractal};
+
+const TAU: f32 = 2.0 * std::f32::consts::PI;
 
 #[derive(Debug)]
 pub struct FlowVector {
@@ -22,29 +22,29 @@ impl FlowVector {
     pub fn rotate(&mut self, a: f32) {
         let heading = self.heading().to_radians() + a.to_radians();
         let mag = self.mag();
-
         self.vector.x = heading.cos() * mag;
         self.vector.y = heading.sin() * mag;
     }
 
     fn mag(&self) -> f32 {
-        f32::sqrt(self.mag_sq())
+        self.mag_sq().sqrt()
     }
 
     fn mag_sq(&self) -> f32 {
         self.vector.x.powi(2) + self.vector.y.powi(2)
     }
 
-    pub fn draw(&self, draw: &Draw) {
-        let xy1 = self.xy;
-        let xy2 = self.xy + self.vector;
-
-        draw.line().points(xy1, xy2).color(BLACK);
-        draw.ellipse().stroke(BLACK).radius(2.0).xy(xy2);
+    pub fn heading(&self) -> f32 {
+        self.vector.y.atan2(self.vector.x).to_degrees()
     }
 
-    pub fn heading(&self) -> f32 {
-        f32::atan2(self.vector.y, self.vector.x).to_degrees()
+    // Add getter methods for private fields
+    pub fn position(&self) -> Vec2 {
+        self.xy
+    }
+
+    pub fn direction(&self) -> Vec2 {
+        self.vector
     }
 }
 
@@ -53,113 +53,102 @@ pub type FlowVectorFieldBuilderFn = Box<dyn Fn(&Model) -> Vec<FlowVector>>;
 pub fn new_right_hand_curve_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field with a right handed curve");
     let (origin_x, origin_y) = model.get_origin();
-
     (0..model.grid_height)
-        .map(move |column_index| {
+        .flat_map(move |column_index| {
             (0..model.grid_width).map(move |row_index| {
-                let xy = Point2::new(
+                let xy = Vec2::new(
                     (row_index as f32 * model.vector_spacing) + origin_x,
                     (column_index as f32 * model.vector_spacing) + origin_y,
                 );
-
                 let mut fv = FlowVector::new(xy, model.vector_magnitude);
-                let a = (column_index as f32 / model.grid_height as f32) * PI;
+                let a = (column_index as f32 / model.grid_height as f32) * std::f32::consts::PI;
                 fv.rotate(a.to_degrees());
-
                 fv
             })
         })
-        .flatten()
+        .collect()
+}
+
+// Generic noise function that works with any NoiseFn
+fn create_noise_flow_vectors<N: NoiseFn<f64, 2> + Clone>(model: &Model, noise: N) -> Vec<FlowVector> {
+    let (origin_x, origin_y) = model.get_origin();
+    
+    // Generate random offsets for X and Y
+    let mut rng = rand::thread_rng();
+    let x_offset = rand::Rng::gen_range(&mut rng, 0.0..1000.0);
+    let y_offset = rand::Rng::gen_range(&mut rng, 0.0..1000.0);
+    
+    (0..model.grid_height)
+        .flat_map(move |column_index| {
+            let noise = noise.clone();
+            (0..model.grid_width).map(move |row_index| {
+                let xy = Vec2::new(
+                    (row_index as f32 * model.vector_spacing) + origin_x,
+                    (column_index as f32 * model.vector_spacing) + origin_y,
+                );
+                let mut fv = FlowVector::new(xy, model.vector_magnitude);
+                let noise_value = noise.get([
+                    (row_index as f64 * model.noise_scale) + x_offset,
+                    (column_index as f64 * model.noise_scale) + y_offset,
+                ]) as f32;
+                let a = noise_value * TAU;
+                fv.rotate(a.to_degrees());
+                fv
+            })
+        })
         .collect()
 }
 
 pub fn new_simplex_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from Simplex noise");
-    let noise = nannou::noise::OpenSimplex::new().set_seed(model.noise_seed);
-
-    new_noise_flow_vectors(model, &noise)
+    let noise = OpenSimplex::new(model.noise_seed);
+    create_noise_flow_vectors(model, noise)
 }
 
 pub fn new_basic_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from Basic Multi-fractal noise");
-    let noise = nannou::noise::BasicMulti::new().set_seed(model.noise_seed);
-
-    new_noise_flow_vectors(model, &noise)
+    let noise = BasicMulti::<OpenSimplex>::new(model.noise_seed);
+    create_noise_flow_vectors(model, noise)
 }
 
 pub fn new_billow_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from Billow noise");
-    let noise = nannou::noise::Billow::new().set_seed(model.noise_seed);
-
-    new_noise_flow_vectors(model, &noise)
+    let noise = Billow::<OpenSimplex>::new(model.noise_seed);
+    create_noise_flow_vectors(model, noise)
 }
 
 pub fn new_terraced_billow_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from Terraced Billow noise");
-    let billow = nannou::noise::Billow::new().set_seed(model.noise_seed);
-    let noise = nannou::noise::Terrace::new(&billow)
-        .add_control_point(0.0001)
-        .add_control_point(0.001)
-        .add_control_point(0.01)
-        .add_control_point(0.1);
-
-    new_noise_flow_vectors(model, &noise)
+    let mut noise = Billow::<OpenSimplex>::new(model.noise_seed);
+    noise = noise.set_octaves(6);
+    create_noise_flow_vectors(model, noise)
 }
 
 pub fn new_fbm_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from FBM noise");
-    let noise = nannou::noise::Fbm::new().set_seed(model.noise_seed);
-
-    new_noise_flow_vectors(model, &noise)
+    let noise = Fbm::<OpenSimplex>::new(model.noise_seed);
+    create_noise_flow_vectors(model, noise)
 }
 
 pub fn new_hybrid_multi_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from Hybrid Multi-fractal noise");
-    let noise = nannou::noise::HybridMulti::new().set_seed(model.noise_seed);
-
-    new_noise_flow_vectors(model, &noise)
+    let noise = HybridMulti::<OpenSimplex>::new(model.noise_seed);
+    create_noise_flow_vectors(model, noise)
 }
 
 pub fn new_value_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from Value noise");
-    let noise = nannou::noise::Value::new().set_seed(model.noise_seed);
-
-    new_noise_flow_vectors(model, &noise)
+    let noise = Value::new(model.noise_seed);
+    create_noise_flow_vectors(model, noise)
 }
 
 pub fn new_worley_noise_flow_vectors(model: &Model) -> Vec<FlowVector> {
     debug!("creating new vector field from Worley (Voronoi-like) noise");
-    let noise = nannou::noise::Worley::new().set_seed(model.noise_seed);
-
-    new_noise_flow_vectors(model, &noise)
+    let noise = Worley::new(model.noise_seed);
+    create_noise_flow_vectors(model, noise)
 }
 
-pub fn new_noise_flow_vectors(model: &Model, noise: &dyn NoiseFn<[f64; 2]>) -> Vec<FlowVector> {
-    let (origin_x, origin_y) = model.get_origin();
-
-    (0..model.grid_height)
-        .map(move |column_index| {
-            (0..model.grid_width).map(move |row_index| {
-                let xy = Point2::new(
-                    (row_index as f32 * model.vector_spacing) + origin_x,
-                    (column_index as f32 * model.vector_spacing) + origin_y,
-                );
-
-                let mut fv = FlowVector::new(xy, model.vector_magnitude);
-                let noise_value = noise.get([
-                    row_index as f64 * model.noise_scale as f64,
-                    column_index as f64 * model.noise_scale as f64,
-                ]);
-                let a = noise_value as f32 * TAU;
-                fv.rotate(a.to_degrees());
-
-                fv
-            })
-        })
-        .flatten()
-        .collect()
-}
-
+#[derive(Debug, Clone)]
 pub enum FlowVectorFieldBuilder {
     RightHandCurve,
     BasicMulti,
@@ -173,20 +162,6 @@ pub enum FlowVectorFieldBuilder {
 }
 
 impl FlowVectorFieldBuilder {
-    pub fn next(&self) -> FlowVectorFieldBuilder {
-        match self {
-            Self::RightHandCurve => Self::BasicMulti,
-            Self::BasicMulti => Self::Billow,
-            Self::Billow => Self::TerracedBillow,
-            Self::TerracedBillow => Self::Fbm,
-            Self::Fbm => Self::HybridMulti,
-            Self::HybridMulti => Self::OpenSimplex,
-            Self::OpenSimplex => Self::Value,
-            Self::Value => Self::Worley,
-            Self::Worley => Self::RightHandCurve,
-        }
-    }
-
     pub fn as_fn(&self) -> FlowVectorFieldBuilderFn {
         Box::new(match self {
             Self::RightHandCurve => new_right_hand_curve_flow_vectors,

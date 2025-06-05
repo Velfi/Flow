@@ -20,21 +20,11 @@ impl RedrawBackground {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Background {
     Black,
     White,
     Vectors,
-}
-
-impl Background {
-    pub fn next(&self) -> Self {
-        match self {
-            Self::Black => Self::White,
-            Self::White => Self::Vectors,
-            Self::Vectors => Self::Black,
-        }
-    }
 }
 
 impl Display for Background {
@@ -54,5 +44,26 @@ impl Display for Background {
 impl Default for Background {
     fn default() -> Self {
         Self::Vectors
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ParticleShape {
+    Circle,
+    Square,
+    Triangle,
+    Star,
+    Diamond,
+}
+
+impl std::fmt::Display for ParticleShape {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Circle => write!(f, "Circle"),
+            Self::Square => write!(f, "Square"),
+            Self::Triangle => write!(f, "Triangle"),
+            Self::Star => write!(f, "Star"),
+            Self::Diamond => write!(f, "Diamond"),
+        }
     }
 }

@@ -1,37 +1,40 @@
-use nannou::prelude::*;
-use std::fmt::{self, Display};
+use glam::Vec2;
+use egui::Color32;
+use crate::model::enums::ParticleShape;
 
 #[derive(Debug)]
 pub struct FlowParticle {
     age: f32,
     aging_rate: f32,
-    color: Rgba<u8>,
-    line_cap: LineCap,
-    previous_xy: Vec2,
+    pub color: Color32,
+    pub previous_xy: Vec2,
     step_length: f32,
     weight: f32,
-    xy: Vec2,
+    pub xy: Vec2,
+    time_outside_bounds: f32,
+    pub shape: ParticleShape,
 }
 
 impl FlowParticle {
     pub fn new(
         age: f32,
         aging_rate: f32,
-        color: Rgba<u8>,
-        line_cap: LineCap,
+        color: Color32,
         step_length: f32,
         weight: f32,
         xy: Vec2,
+        shape: ParticleShape,
     ) -> Self {
         FlowParticle {
             age,
             aging_rate,
             color,
-            line_cap,
             previous_xy: xy,
             step_length,
             weight,
             xy,
+            time_outside_bounds: 0.0,
+            shape,
         }
     }
 
@@ -42,19 +45,6 @@ impl FlowParticle {
         self.xy.y += (self.step_length + step_length) * f32::sin(nearest_angle.to_radians());
     }
 
-    pub fn draw(&self, draw: &Draw) {
-        let d = draw
-            .line()
-            .color(self.color)
-            .points(self.previous_xy, self.xy)
-            .weight(self.weight);
-
-        match self.line_cap {
-            LineCap::Square => d.start_cap_square().end_cap_square(),
-            LineCap::Round => d.start_cap_round().end_cap_round(),
-        };
-    }
-
     pub fn age(&self) -> f32 {
         self.age
     }
@@ -62,21 +52,37 @@ impl FlowParticle {
     pub fn xy(&self) -> &Vec2 {
         &self.xy
     }
+    
+    pub fn time_outside_bounds(&self) -> f32 {
+        self.time_outside_bounds
+    }
+    
+    pub fn update_bounds_time(&mut self, delta_time: f32, is_outside: bool) {
+        if is_outside {
+            self.time_outside_bounds += delta_time;
+        } else {
+            self.time_outside_bounds = 0.0;
+        }
+    }
+
+    pub fn weight(&self) -> f32 {
+        self.weight
+    }
 }
 
 impl Default for FlowParticle {
     fn default() -> Self {
         let xy = Vec2::new(0.0, 0.0);
-
         FlowParticle {
             age: 0.0,
             aging_rate: 0.1,
-            color: Rgba::new(0, 0, 0, 255),
-            line_cap: LineCap::Round,
+            color: Color32::BLACK,
             previous_xy: xy,
             step_length: 1.0,
             weight: 1.0,
             xy,
+            time_outside_bounds: 0.0,
+            shape: ParticleShape::Circle,
         }
     }
 }
@@ -86,43 +92,9 @@ pub type FlowParticleBuilderFn = Box<dyn Fn(FlowParticleBuilderFnOptions) -> Flo
 pub struct FlowParticleBuilderFnOptions {
     pub age: f32,
     pub aging_rate: f32,
-    pub color: Rgba<u8>,
-    pub line_cap: LineCap,
+    pub color: Color32,
     pub step_length: f32,
     pub weight: f32,
     pub xy: Vec2,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum LineCap {
-    Square,
-    Round,
-}
-
-impl LineCap {
-    pub fn next(self) -> Self {
-        match self {
-            Self::Square => Self::Round,
-            Self::Round => Self::Square,
-        }
-    }
-}
-
-impl Display for LineCap {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Square => "Square",
-                Self::Round => "Round",
-            }
-        )
-    }
-}
-
-impl Default for LineCap {
-    fn default() -> Self {
-        Self::Round
-    }
+    pub shape: ParticleShape,
 }

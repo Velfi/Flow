@@ -2,7 +2,7 @@
 name = "flow"
 version = "0.1.0"
 authors = ["Zelda Hessler <zelda.hessler@pm.me>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,5 +11,16 @@ dotenv = "0.15.0"
 env_logger = "0.8.4"
 hex = "0.4.3"
 log = "0.4.14"
-nannou = "0.17.1"
 rand = "0.8.4"
+noise = "0.9.0"
+
+# WGPU and EGUI dependencies
+winit = "0.29.10"
+wgpu = "0.19.3"
+egui = "0.26.2"
+egui-wgpu = "0.26.2"
+egui-winit = "0.26.2"
+pollster = "0.3.0"
+glam = "0.25.0"
+bytemuck = "1.14.0"
+lazy_static = "1.5.0"
